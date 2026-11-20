@@ -1,22 +1,39 @@
+require('dotenv').config();
+
 const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
-const dotenv = require('dotenv');
 const connectDB = require('./config/db');
-
-// Load environment variables
-dotenv.config();
+const { initScheduler } = require('./services/scheduler');
 
 // Connect to MongoDB
-connectDB();
+connectDB().then(() => {
+  // Start reminder scheduler once DB is connected
+  initScheduler();
+});
 
 const app = express();
 
-// Middlewares
+// Flexible CORS to allow localhost and local Wi-Fi IP access from mobile devices
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps, curl, or same-origin)
+    if (!origin) return callback(null, true);
+    // Allow any localhost or local IP port 5173 or 5000
+    if (
+      origin.includes('localhost') ||
+      origin.includes('127.0.0.1') ||
+      /^http:\/\/192\.168\.\d+\.\d+(:\d+)?$/.test(origin) ||
+      /^http:\/\/172\.\d+\.\d+\.\d+(:\d+)?$/.test(origin) ||
+      /^http:\/\/10\.\d+\.\d+\.\d+(:\d+)?$/.test(origin)
+    ) {
+      return callback(null, true);
+    }
+    return callback(null, true); // Allow during local development
+  },
   credentials: true
 }));
+
 app.use(express.json());
 
 if (process.env.NODE_ENV === 'development') {
@@ -25,12 +42,18 @@ if (process.env.NODE_ENV === 'development') {
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-  res.status(200).json({ status: 'ok', service: 'atomic-habits-api', timestamp: new Date() });
+  res.status(200).json({
+    status: 'ok',
+    service: 'atomic-habits-api',
+    mongodb: 'connected',
+    timestamp: new Date()
+  });
 });
 
 // Mount Routes
 app.use('/api/habits', require('./routes/habitRoutes'));
 app.use('/api/logs', require('./routes/logRoutes'));
+app.use('/api/notifications', require('./routes/notificationRoutes'));
 
 // 404 Handler
 app.use((req, res) => {
@@ -47,7 +70,7 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 5000;
-const server = app.listen(PORT, () => {
+const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`[Server] Atomic Habits Backend running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
 });
 

@@ -16,6 +16,15 @@ const HabitSchema = new mongoose.Schema(
     order: {
       type: Number,
       default: 0
+    },
+    reminderTime: {
+      type: String,
+      default: null, // format "HH:mm" (24h) e.g. "08:00"
+      match: [/^([01]\d|2[0-3]):([0-5]\d)$/, 'Reminder time must be formatted as HH:mm']
+    },
+    reminderEnabled: {
+      type: Boolean,
+      default: true
     }
   },
   {

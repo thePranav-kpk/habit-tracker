@@ -2,11 +2,17 @@ import React, { useState } from 'react';
 
 export default function HabitInput({ onAddHabit }) {
   const [name, setName] = useState('');
+  const [reminderTime, setReminderTime] = useState('08:00');
+  const [showTimePicker, setShowTimePicker] = useState(false);
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!name.trim()) return;
-    onAddHabit(name.trim());
+    onAddHabit({
+      name: name.trim(),
+      reminderTime: showTimePicker ? reminderTime : '08:00',
+      reminderEnabled: true
+    });
     setName('');
   };
 
@@ -24,10 +30,32 @@ export default function HabitInput({ onAddHabit }) {
             autoComplete="off"
             required
           />
+
+          <button
+            type="button"
+            className={`time-toggle-btn ${showTimePicker ? 'active' : ''}`}
+            onClick={() => setShowTimePicker(!showTimePicker)}
+            title="Set reminder time for phone notification"
+          >
+            ⏰
+          </button>
+
           <button type="submit" className="add-btn" title="Add Habit (Enter)">
             +
           </button>
         </div>
+
+        {showTimePicker && (
+          <div className="reminder-time-row">
+            <span className="reminder-label">🔔 Remind phone at:</span>
+            <input
+              type="time"
+              className="time-input"
+              value={reminderTime}
+              onChange={(e) => setReminderTime(e.target.value)}
+            />
+          </div>
+        )}
       </form>
     </div>
   );

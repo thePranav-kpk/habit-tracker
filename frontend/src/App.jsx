@@ -5,10 +5,12 @@ import StatsRow from './components/RightPanel/StatsRow';
 import HeatmapBoard from './components/RightPanel/HeatmapBoard';
 import WisdomSection from './components/RightPanel/WisdomSection';
 import Confetti from './components/UI/Confetti';
+import MobileConnectModal from './components/UI/MobileConnectModal';
 import { habitApi } from './api/habitApi';
 import { getLocalDateString } from './utils/dateUtils';
 import { computeStreakStats, getMilestoneDetails } from './utils/streakUtils';
 import { playCelebrationChime } from './utils/audioUtils';
+import { registerServiceWorker } from './utils/notificationUtils';
 
 export default function App() {
   const [habits, setHabits] = useState([]);
@@ -17,6 +19,12 @@ export default function App() {
   const [error, setError] = useState(null);
   const [confettiOrigin, setConfettiOrigin] = useState(null);
   const [todayStr, setTodayStr] = useState(getLocalDateString());
+  const [isMobileModalOpen, setIsMobileModalOpen] = useState(false);
+
+  // Initialize service worker
+  useEffect(() => {
+    registerServiceWorker();
+  }, []);
 
   // Load data from Backend API
   const loadData = useCallback(async () => {
@@ -30,7 +38,7 @@ export default function App() {
       setError(null);
     } catch (err) {
       console.error('Failed to load data from backend:', err);
-      setError('Could not connect to backend server. Make sure MongoDB and backend are running.');
+      setError('Connecting to backend server / MongoDB Atlas...');
     } finally {
       setLoading(false);
     }
@@ -59,19 +67,19 @@ export default function App() {
   }, [loadData, todayStr]);
 
   // Handle Add Habit
-  const handleAddHabit = async (name) => {
+  const handleAddHabit = async (habitData) => {
     try {
-      const newHabit = await habitApi.createHabit(name);
+      const newHabit = await habitApi.createHabit(habitData);
       setHabits(prev => [...prev, newHabit]);
     } catch (err) {
       console.error('Add habit error:', err);
     }
   };
 
-  // Handle Inline Update Habit
-  const handleUpdateHabit = async (id, name) => {
+  // Handle Update Habit
+  const handleUpdateHabit = async (id, fields) => {
     try {
-      const updated = await habitApi.updateHabit(id, name);
+      const updated = await habitApi.updateHabit(id, fields);
       setHabits(prev => prev.map(h => ((h._id || h.id) === id ? updated : h)));
     } catch (err) {
       console.error('Update habit error:', err);
@@ -83,7 +91,6 @@ export default function App() {
     try {
       await habitApi.deleteHabit(id);
       setHabits(prev => prev.filter(h => (h._id || h.id) !== id));
-      // Refresh logs to update today's log if needed
       const updatedLogs = await habitApi.getLogs();
       setDailyLogs(updatedLogs);
     } catch (err) {
@@ -151,14 +158,12 @@ export default function App() {
       }
     } catch (err) {
       console.error('Toggle habit error:', err);
-      // Revert if backend failed
       loadData();
     }
   };
 
   const stats = computeStreakStats(dailyLogs);
   const milestone = getMilestoneDetails(stats.currentStreak);
-
   const completedTodayCount = habits.filter(h => h.lastDoneDate === todayStr).length;
 
   const formattedToday = new Date().toLocaleDateString(undefined, {
@@ -169,7 +174,23 @@ export default function App() {
 
   return (
     <div className="app-layout">
-      {/* Optional backend connection warning banner */}
+      {/* Top Banner with Mobile Connect & Sync Status */}
+      <div className="app-top-nav">
+        <div className="nav-left">
+          <span className="live-dot"></span>
+          <span className="nav-status-text">MongoDB Atlas Connected</span>
+        </div>
+
+        <button 
+          className="connect-mobile-btn" 
+          onClick={() => setIsMobileModalOpen(true)}
+          title="Connect phone to receive habit alerts"
+        >
+          <span>📱</span>
+          <span>Connect Mobile Phone</span>
+        </button>
+      </div>
+
       {error && (
         <div className="backend-alert-banner">
           <span>⚠️ {error}</span>
@@ -204,7 +225,7 @@ export default function App() {
             onToggle={handleToggleDone}
             onUpdate={handleUpdateHabit}
             onDelete={handleDeleteHabit}
-            onQuickAdd={handleAddHabit}
+            onQuickAdd={(name) => handleAddHabit({ name, reminderTime: '08:00', reminderEnabled: true })}
           />
         </aside>
 
@@ -239,6 +260,11 @@ export default function App() {
       </div>
 
       <Confetti triggerOrigin={confettiOrigin} />
+      
+      <MobileConnectModal 
+        isOpen={isMobileModalOpen} 
+        onClose={() => setIsMobileModalOpen(false)} 
+      />
     </div>
   );
 }

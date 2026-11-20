@@ -25,7 +25,7 @@ exports.getHabits = async (req, res) => {
 // @route   POST /api/habits
 exports.createHabit = async (req, res) => {
   try {
-    const { name } = req.body;
+    const { name, reminderTime, reminderEnabled } = req.body;
     if (!name || !name.trim()) {
       return res.status(400).json({ success: false, error: 'Habit name is required' });
     }
@@ -34,7 +34,9 @@ exports.createHabit = async (req, res) => {
     const habit = await Habit.create({
       name: name.trim(),
       order: count,
-      lastDoneDate: null
+      lastDoneDate: null,
+      reminderTime: reminderTime || null,
+      reminderEnabled: reminderEnabled !== undefined ? reminderEnabled : true
     });
 
     res.status(201).json({ success: true, data: habit });
@@ -43,18 +45,30 @@ exports.createHabit = async (req, res) => {
   }
 };
 
-// @desc    Update habit (rename)
+// @desc    Update habit (rename or update reminder)
 // @route   PUT /api/habits/:id
 exports.updateHabit = async (req, res) => {
   try {
-    const { name } = req.body;
-    if (!name || !name.trim()) {
-      return res.status(400).json({ success: false, error: 'Habit name is required' });
+    const updateFields = {};
+    if (req.body.name !== undefined) {
+      if (!req.body.name.trim()) {
+        return res.status(400).json({ success: false, error: 'Habit name cannot be empty' });
+      }
+      updateFields.name = req.body.name.trim();
+    }
+    if (req.body.reminderTime !== undefined) {
+      updateFields.reminderTime = req.body.reminderTime || null;
+    }
+    if (req.body.reminderEnabled !== undefined) {
+      updateFields.reminderEnabled = Boolean(req.body.reminderEnabled);
+    }
+    if (req.body.order !== undefined) {
+      updateFields.order = req.body.order;
     }
 
     const habit = await Habit.findByIdAndUpdate(
       req.params.id,
-      { name: name.trim() },
+      updateFields,
       { new: true, runValidators: true }
     );
 

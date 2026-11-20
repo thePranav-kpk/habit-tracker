@@ -1,6 +1,7 @@
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
 export const habitApi = {
+  // Habit CRUD
   async getHabits() {
     const res = await fetch(`${API_BASE}/habits`);
     if (!res.ok) throw new Error('Failed to fetch habits');
@@ -8,22 +9,24 @@ export const habitApi = {
     return json.data || [];
   },
 
-  async createHabit(name) {
+  async createHabit(data) {
+    const payload = typeof data === 'string' ? { name: data } : data;
     const res = await fetch(`${API_BASE}/habits`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name })
+      body: JSON.stringify(payload)
     });
     if (!res.ok) throw new Error('Failed to create habit');
     const json = await res.json();
     return json.data;
   },
 
-  async updateHabit(id, name) {
+  async updateHabit(id, fields) {
+    const payload = typeof fields === 'string' ? { name: fields } : fields;
     const res = await fetch(`${API_BASE}/habits/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name })
+      body: JSON.stringify(payload)
     });
     if (!res.ok) throw new Error('Failed to update habit');
     const json = await res.json();
@@ -49,6 +52,7 @@ export const habitApi = {
     return json.data; // { habit, isDone, dailyLog }
   },
 
+  // Daily Logs & Stats
   async getLogs() {
     const res = await fetch(`${API_BASE}/logs`);
     if (!res.ok) throw new Error('Failed to fetch daily logs');
@@ -60,6 +64,52 @@ export const habitApi = {
     const query = todayStr ? `?today=${todayStr}` : '';
     const res = await fetch(`${API_BASE}/logs/stats${query}`);
     if (!res.ok) throw new Error('Failed to fetch stats');
+    const json = await res.json();
+    return json.data;
+  },
+
+  // Push Notifications
+  async getVapidKey() {
+    const res = await fetch(`${API_BASE}/notifications/vapid-key`);
+    if (!res.ok) throw new Error('Failed to fetch VAPID key');
+    const json = await res.json();
+    return json.publicKey;
+  },
+
+  async subscribeDevice(subscription, deviceName) {
+    const res = await fetch(`${API_BASE}/notifications/subscribe`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subscription, deviceName })
+    });
+    if (!res.ok) throw new Error('Failed to subscribe device');
+    const json = await res.json();
+    return json;
+  },
+
+  async unsubscribeDevice(endpoint) {
+    const res = await fetch(`${API_BASE}/notifications/unsubscribe`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ endpoint })
+    });
+    if (!res.ok) throw new Error('Failed to unsubscribe device');
+    const json = await res.json();
+    return json;
+  },
+
+  async sendTestNotification() {
+    const res = await fetch(`${API_BASE}/notifications/test`, {
+      method: 'POST'
+    });
+    if (!res.ok) throw new Error('Failed to send test notification');
+    const json = await res.json();
+    return json;
+  },
+
+  async getMobileConnectInfo() {
+    const res = await fetch(`${API_BASE}/notifications/mobile-info`);
+    if (!res.ok) throw new Error('Failed to fetch mobile connect info');
     const json = await res.json();
     return json.data;
   }
