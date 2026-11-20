@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: atomic-habits-backend
+    env: node
+    rootDir: backend
+    plan: free
+    buildCommand: npm install
+    startCommand: node server.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        sync: false
+      - key: NTFY_TOPIC
+        value: atomic-habits-pranav
+      - key: VAPID_PUBLIC_KEY
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+      - key: VAPID_SUBJECT
+        value: mailto:admin@atomic-habits.local
+      - key: FRONTEND_URL
+        sync: false

@@ -105,10 +105,10 @@ function initScheduler() {
           const ntfyTopic = process.env.NTFY_TOPIC || 'atomic-habits-pranav';
           const localIp = getLocalIpAddress();
           await sendNtfyNotification(ntfyTopic, {
-            title: `⏰ Pending Habit: ${habit.name}`,
+            title: `Pending Habit: ${habit.name}`,
             message: `It's ${currentTime}! You have not completed "${habit.name}" yet today. Protect your streak!`,
-            priority: 'urgent',
-            tags: 'alarm_clock,fire',
+            priority: 'high',
+            tags: 'calendar,white_check_mark',
             clickUrl: `http://${localIp}:5173`
           });
         }

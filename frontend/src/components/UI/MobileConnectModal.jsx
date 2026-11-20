@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { habitApi } from '../../api/habitApi';
 import { subscribeToPush, getExistingSubscription } from '../../utils/notificationUtils';
+import AtomicLogo from './AtomicLogo';
 
 export default function MobileConnectModal({ isOpen, onClose }) {
   const [mobileInfo, setMobileInfo] = useState(null);
   const [loading, setLoading] = useState(false);
   const [statusMsg, setStatusMsg] = useState('');
   const [isSubscribed, setIsSubscribed] = useState(false);
-  const [activeTab, setActiveTab] = useState('instant'); // 'instant' | 'browser'
+  const [activeTab, setActiveTab] = useState('pc'); // 'pc' | 'mobile' | 'wifi'
 
   useEffect(() => {
     if (isOpen) {
@@ -35,7 +36,7 @@ export default function MobileConnectModal({ isOpen, onClose }) {
     setStatusMsg('');
     try {
       const res = await habitApi.sendTestNotification();
-      setStatusMsg(`🚀 ${res.message || 'Test alert dispatched! Check your phone lockscreen now.'}`);
+      setStatusMsg(`🚀 ${res.message || 'Test alert dispatched! Check your PC screen and phone lockscreen now.'}`);
     } catch (err) {
       console.error(err);
       setStatusMsg('❌ Failed to dispatch test alert');
@@ -44,7 +45,7 @@ export default function MobileConnectModal({ isOpen, onClose }) {
     }
   };
 
-  const handleEnableBrowserPush = async () => {
+  const handleEnableDesktopPush = async () => {
     setLoading(true);
     setStatusMsg('');
     try {
@@ -55,11 +56,11 @@ export default function MobileConnectModal({ isOpen, onClose }) {
 
       const subscription = await subscribeToPush(vapidKey);
       const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-      const deviceName = isMobile ? 'Mobile Phone Browser' : 'Desktop Browser';
+      const deviceName = isMobile ? 'Mobile Phone' : 'PC Desktop Browser';
 
       await habitApi.subscribeDevice(subscription, deviceName);
       setIsSubscribed(true);
-      setStatusMsg('✅ Browser notifications enabled on this device!');
+      setStatusMsg('✅ PC Desktop notifications enabled! You will receive alerts even when this tab is closed.');
       loadInfo();
     } catch (err) {
       console.error('Subscription error:', err);
@@ -75,16 +76,16 @@ export default function MobileConnectModal({ isOpen, onClose }) {
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal-card" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <div className="modal-title">
-            <span className="modal-icon">📱</span>
-            <span>Connect to Mobile Phone</span>
+          <div className="modal-title" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <AtomicLogo size={28} animated={false} />
+            <span>Notification & Device Center</span>
           </div>
-          <button className="modal-close-btn" onClick={onClose}>✕</button>
+          <button className="modal-close-btn" onClick={onClose} aria-label="Close">✕</button>
         </div>
 
         <div className="modal-body">
           <p className="modal-intro">
-            Receive on-time reminders directly on your phone lockscreen <strong>only for uncompleted habits</strong>!
+            Stay consistent across all your devices. Notifications are strictly <strong>muted if the habit is already completed today</strong>.
           </p>
 
           {/* Status Message */}
@@ -94,69 +95,106 @@ export default function MobileConnectModal({ isOpen, onClose }) {
             </div>
           )}
 
-          {/* Method Selector Tabs */}
-          <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '8px' }}>
+          {/* Navigation Tabs */}
+          <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '10px', flexWrap: 'wrap' }}>
             <button
-              className={`quick-pill ${activeTab === 'instant' ? 'active' : ''}`}
+              className={`quick-pill ${activeTab === 'pc' ? 'active' : ''}`}
               style={{
-                background: activeTab === 'instant' ? 'var(--accent)' : 'var(--bg-card)',
+                background: activeTab === 'pc' ? 'var(--accent)' : 'var(--bg-card)',
                 color: '#ffffff',
-                fontWeight: '600'
+                fontWeight: '600',
+                padding: '7px 14px'
               }}
-              onClick={() => setActiveTab('instant')}
+              onClick={() => setActiveTab('pc')}
             >
-              ⚡ Method 1: Instant Phone Connect (Recommended)
+              💻 PC Desktop (Tab Open or Closed)
             </button>
             <button
-              className={`quick-pill ${activeTab === 'browser' ? 'active' : ''}`}
+              className={`quick-pill ${activeTab === 'mobile' ? 'active' : ''}`}
               style={{
-                background: activeTab === 'browser' ? 'var(--accent)' : 'var(--bg-card)',
+                background: activeTab === 'mobile' ? 'var(--accent)' : 'var(--bg-card)',
                 color: '#ffffff',
-                fontWeight: '600'
+                fontWeight: '600',
+                padding: '7px 14px'
               }}
-              onClick={() => setActiveTab('browser')}
+              onClick={() => setActiveTab('mobile')}
             >
-              🌐 Method 2: Wi-Fi Browser
+              📱 Mobile Phone (Normal Sound)
+            </button>
+            <button
+              className={`quick-pill ${activeTab === 'wifi' ? 'active' : ''}`}
+              style={{
+                background: activeTab === 'wifi' ? 'var(--accent)' : 'var(--bg-card)',
+                color: '#ffffff',
+                fontWeight: '600',
+                padding: '7px 14px'
+              }}
+              onClick={() => setActiveTab('wifi')}
+            >
+              🌐 Local Wi-Fi
             </button>
           </div>
 
-          {activeTab === 'instant' ? (
+          {/* TAB 1: PC DESKTOP (TAB OPEN OR CLOSED) */}
+          {activeTab === 'pc' && (
             <div className="connect-section" style={{ border: '1px solid var(--accent)' }}>
-              <h4 className="section-title">Scan to Connect Phone in 10 Seconds</h4>
+              <h4 className="section-title">💻 Receive Alerts on PC Even When Tab is Closed</h4>
               <p className="section-desc">
-                Works on <strong>Android & iPhone</strong>. Rings your phone lockscreen at habit times even with phone asleep:
+                Enables background <strong>W3C Web Push & Service Worker</strong>. When your habit reminder time arrives, your computer will display a desktop alert (Windows Action Center / Mac Notification Center) with <strong>✓ Done</strong> and <strong>⏰ Later (+30m)</strong> quick action buttons, even if you closed the browser tab!
+              </p>
+
+              <div style={{ margin: '14px 0' }}>
+                <button 
+                  className={`btn-primary ${isSubscribed ? 'connected' : ''}`}
+                  style={{ width: '100%', padding: '12px', fontSize: '14px', fontWeight: '600' }}
+                  onClick={handleEnableDesktopPush}
+                  disabled={loading}
+                >
+                  {isSubscribed ? '✓ PC Desktop Background Notifications Active' : '🔔 Enable PC Desktop Notifications (1-Click)'}
+                </button>
+              </div>
+
+              <div style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: '1.5' }}>
+                <p><strong>Note on PC behavior:</strong></p>
+                <ul style={{ paddingLeft: '18px', marginTop: '4px' }}>
+                  <li>Notifications use <code>requireInteraction: true</code> so they stay visible until you interact.</li>
+                  <li>Clicking <strong>✓ Done</strong> directly on the PC notification updates MongoDB and your streak board immediately.</li>
+                  <li>You can also open <a href={mobileInfo?.ntfyUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--accent-light)' }}>{mobileInfo?.ntfyUrl}</a> on your PC and click "Subscribe" for an extra redundant desktop channel.</li>
+                </ul>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 2: MOBILE PHONE (STANDARD APP SOUND) */}
+          {activeTab === 'mobile' && (
+            <div className="connect-section" style={{ border: '1px solid var(--accent)' }}>
+              <h4 className="section-title">📱 Connect Mobile Phone (Android & iOS)</h4>
+              <p className="section-desc">
+                Plays your phone's <strong>standard app notification chime</strong> (same as WhatsApp, Telegram, or Gmail) — not loud sirens or ringtones!
               </p>
 
               {mobileInfo && (
                 <div className="qr-container">
                   <img src={mobileInfo.qrCodeDataUrl} alt="Scan QR Code" className="qr-image" />
                   <div className="qr-info">
-                    <span className="qr-label">1. Scan or open in phone browser:</span>
+                    <span className="qr-label">1. Scan with phone camera or visit:</span>
                     <a href={mobileInfo.ntfyUrl} target="_blank" rel="noreferrer" className="mobile-link">
                       {mobileInfo.ntfyUrl}
                     </a>
                     <span className="qr-sub">2. Tap <strong>"Subscribe"</strong> (or open in free ntfy app)</span>
-                    <span className="qr-sub">3. Then click the test button below!</span>
+                    <span className="qr-sub">3. Standard phone sound & vibration are pre-configured!</span>
                   </div>
                 </div>
               )}
-
-              <div style={{ marginTop: '8px' }}>
-                <button 
-                  className="btn-primary"
-                  style={{ width: '100%', padding: '12px', fontSize: '13.5px' }}
-                  onClick={handleSendTest}
-                  disabled={loading}
-                >
-                  ⚡ Send Test Notification to My Phone
-                </button>
-              </div>
             </div>
-          ) : (
+          )}
+
+          {/* TAB 3: WI-FI APP PAIRING */}
+          {activeTab === 'wifi' && (
             <div className="connect-section">
-              <h4 className="section-title">Method 2: Open Web App via Local Wi-Fi</h4>
+              <h4 className="section-title">🌐 Open Full App on Mobile via Local Wi-Fi</h4>
               <p className="section-desc">
-                Open this app directly on your phone's browser over the local network:
+                Open the interactive Habit Tracker UI directly in your mobile browser:
               </p>
 
               {mobileInfo && (
@@ -167,25 +205,27 @@ export default function MobileConnectModal({ isOpen, onClose }) {
                     <a href={mobileInfo.mobileUrl} target="_blank" rel="noreferrer" className="mobile-link">
                       {mobileInfo.mobileUrl}
                     </a>
-                    <span className="qr-sub">Must be on the same Wi-Fi network</span>
+                    <span className="qr-sub">Your phone and PC must be on the same Wi-Fi network</span>
                   </div>
                 </div>
               )}
-
-              <div className="action-buttons-row">
-                <button 
-                  className={`btn-primary ${isSubscribed ? 'connected' : ''}`}
-                  onClick={handleEnableBrowserPush}
-                  disabled={loading}
-                >
-                  {isSubscribed ? '✓ This Device is Subscribed' : '🔔 Enable Notifications on this Browser'}
-                </button>
-              </div>
             </div>
           )}
 
-          <div style={{ fontSize: '12px', color: 'var(--text-muted)', background: 'rgba(124, 58, 237, 0.08)', padding: '10px 14px', borderRadius: 'var(--radius-md)', border: '1px solid rgba(124, 58, 237, 0.2)' }}>
-            💡 <strong>Smart Notification Rule Active:</strong> If a habit is already marked as completed for today, all reminders to your mobile are automatically silenced! Reminders only ring for <strong>pending / uncompleted habits</strong>.
+          {/* Universal Test Button */}
+          <div style={{ marginTop: '14px' }}>
+            <button 
+              className="btn-primary"
+              style={{ width: '100%', padding: '11px', fontSize: '13px', background: 'rgba(124, 58, 237, 0.25)', border: '1px solid var(--accent)' }}
+              onClick={handleSendTest}
+              disabled={loading}
+            >
+              ⚡ Send Live Test Alert to PC & Phone Now
+            </button>
+          </div>
+
+          <div style={{ marginTop: '10px', fontSize: '12px', color: 'var(--text-muted)', background: 'rgba(124, 58, 237, 0.08)', padding: '10px 14px', borderRadius: 'var(--radius-md)', border: '1px solid rgba(124, 58, 237, 0.2)' }}>
+            🛡️ <strong>Smart Notification Rule:</strong> Reminders ring <strong>ONLY for pending / uncompleted habits</strong>. If a habit was already completed today, reminders to both PC and phone are completely suppressed!
           </div>
         </div>
 

@@ -15,16 +15,19 @@ connectDB().then(() => {
 
 const app = express();
 
-// Flexible CORS to allow localhost and local Wi-Fi IP access from mobile devices
+// Flexible CORS to allow localhost, local Wi-Fi IP, Render backend and Vercel production frontend
 app.use(cors({
   origin: (origin, callback) => {
     if (!origin) return callback(null, true);
     if (
       origin.includes('localhost') ||
       origin.includes('127.0.0.1') ||
+      origin.includes('vercel.app') ||
+      origin.includes('onrender.com') ||
       /^http:\/\/192\.168\.\d+\.\d+(:\d+)?$/.test(origin) ||
       /^http:\/\/172\.\d+\.\d+\.\d+(:\d+)?$/.test(origin) ||
-      /^http:\/\/10\.\d+\.\d+\.\d+(:\d+)?$/.test(origin)
+      /^http:\/\/10\.\d+\.\d+\.\d+(:\d+)?$/.test(origin) ||
+      (process.env.FRONTEND_URL && origin.startsWith(process.env.FRONTEND_URL))
     ) {
       return callback(null, true);
     }

@@ -17,6 +17,8 @@ self.addEventListener('push', (event) => {
     badge: data.badge || '/favicon.svg',
     tag: data.tag || 'habit-reminder',
     vibrate: [200, 100, 200],
+    requireInteraction: true, // Keep notification visible on PC screen & Action Center until interacted
+    renotify: true,
     data: data.data || { url: '/' },
     actions: data.actions || [
       { action: 'mark-done', title: '✓ Done' },

@@ -6,6 +6,7 @@ import HeatmapBoard from './components/RightPanel/HeatmapBoard';
 import WisdomSection from './components/RightPanel/WisdomSection';
 import Confetti from './components/UI/Confetti';
 import MobileConnectModal from './components/UI/MobileConnectModal';
+import AtomicLogo from './components/UI/AtomicLogo';
 import { habitApi } from './api/habitApi';
 import { getLocalDateString } from './utils/dateUtils';
 import { computeStreakStats, getMilestoneDetails } from './utils/streakUtils';
@@ -198,9 +199,15 @@ export default function App() {
 
   return (
     <div className="app-layout">
-      {/* Top Banner with Mobile Connect & Sync Status */}
+      {/* Top Banner with Brand Logo, Mobile/PC Connect & Sync Status */}
       <div className="app-top-nav">
         <div className="nav-left">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginRight: '8px' }}>
+            <AtomicLogo size={20} animated={false} />
+            <span style={{ fontWeight: '700', fontSize: '13px', letterSpacing: '-0.02em', color: '#e6edf3' }}>
+              Atomic Habits
+            </span>
+          </div>
           <span className="live-dot"></span>
           <span className="nav-status-text">MongoDB Atlas Connected</span>
           <a 
@@ -217,10 +224,10 @@ export default function App() {
         <button 
           className="connect-mobile-btn" 
           onClick={() => setIsMobileModalOpen(true)}
-          title="Connect phone to receive habit alerts"
+          title="Connect PC Desktop & Mobile Phone for Habit Reminders"
         >
-          <span>📱</span>
-          <span>Connect Mobile Phone</span>
+          <span>🔔</span>
+          <span>PC & Mobile Alerts</span>
         </button>
       </div>
 
@@ -242,12 +249,19 @@ export default function App() {
         <aside className="left-panel">
           <div className="panel-header">
             <div className="brand-row">
-              <h1 className="brand-title">
-                <span className="brand-title-accent">My Habits</span>
-              </h1>
+              <div className="brand-title-group">
+                <div className="atomic-logo-badge" title="Atomic Habits Consistency Engine">
+                  <AtomicLogo size={36} animated={true} />
+                </div>
+                <div>
+                  <h1 className="brand-title">
+                    <span className="brand-title-accent">My Habits</span>
+                  </h1>
+                  <p className="brand-tagline">Small habits. Remarkable results.</p>
+                </div>
+              </div>
               <span className="date-badge">{formattedToday}</span>
             </div>
-            <p className="brand-tagline">Small habits. Remarkable results.</p>
           </div>
 
           <HabitInput onAddHabit={handleAddHabit} />

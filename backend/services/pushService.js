@@ -1,6 +1,10 @@
 require('dotenv').config();
+const https = require('https');
 const webpush = require('web-push');
 const Subscription = require('../models/Subscription');
+
+// Dedicated IPv4 HTTPS agent to prevent Node 20+ IPv6 ETIMEDOUT on desktop WNS/FCM endpoints
+const ipv4Agent = new https.Agent({ family: 4, keepAlive: true });
 
 // VAPID keys setup
 const vapidPublicKey = process.env.VAPID_PUBLIC_KEY;
@@ -40,10 +44,11 @@ async function sendPushNotification(payload) {
       };
 
       try {
-        // Use 4-second timeout so network blocks or dead endpoints don't hang
+        // Enforce IPv4 and 5-second timeout for reliable desktop PC notifications
         await webpush.sendNotification(pushConfig, payloadString, {
-          timeout: 4000,
-          urgency: 'high'
+          timeout: 5000,
+          urgency: 'high',
+          agent: ipv4Agent
         });
         sentCount++;
       } catch (err) {

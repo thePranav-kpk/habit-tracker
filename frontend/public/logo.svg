@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <defs>
+    <linearGradient id="orbit-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#c4b5fd"/>
+      <stop offset="50%" stop-color="#8b5cf6"/>
+      <stop offset="100%" stop-color="#6d28d9"/>
+    </linearGradient>
+    <linearGradient id="core-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#a78bfa"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="1.5" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Background container -->
+  <rect width="48" height="48" rx="12" fill="#161b22"/>
+  <rect width="46" height="46" x="1" y="1" rx="11" fill="none" stroke="#30363d" stroke-width="1"/>
+
+  <!-- Orbital Rings -->
+  <g transform="translate(0, 0)">
+    <!-- Orbit 1 (45 deg) -->
+    <ellipse cx="24" cy="24" rx="18" ry="7" transform="rotate(45 24 24)" fill="none" stroke="url(#orbit-grad)" stroke-width="2" stroke-opacity="0.85"/>
+    <!-- Orbit 2 (-45 deg) -->
+    <ellipse cx="24" cy="24" rx="18" ry="7" transform="rotate(-45 24 24)" fill="none" stroke="url(#orbit-grad)" stroke-width="2" stroke-opacity="0.85"/>
+    
+    <!-- Electron Nodes -->
+    <circle cx="11.2" cy="11.2" r="2.4" fill="#a78bfa" filter="url(#glow)"/>
+    <circle cx="36.8" cy="11.2" r="2.4" fill="#38bdf8" filter="url(#glow)"/>
+    <circle cx="36.8" cy="36.8" r="2" fill="#a78bfa" opacity="0.9"/>
+  </g>
+
+  <!-- Central Atomic Nucleus with Habit Checkmark -->
+  <circle cx="24" cy="24" r="8.5" fill="url(#core-grad)" filter="url(#glow)"/>
+  <path d="M20.5 24.2l2.6 2.6 4.8-5.2" stroke="#ffffff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+
+  <!-- Golden Habit Streak Spark -->
+  <circle cx="24" cy="4.5" r="2" fill="#fbbf24"/>
+</svg>

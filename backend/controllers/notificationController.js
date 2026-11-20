@@ -88,10 +88,10 @@ exports.sendTest = async (req, res) => {
     const localIp = getLocalIpAddress();
 
     const ntfyResult = await sendNtfyNotification(ntfyTopic, {
-      title: '🔔 Habit Tracker Connected!',
+      title: 'Habit Tracker Connected!',
       message: 'Success! Your phone is now paired with Atomic Habits Tracker. You will receive notifications for uncompleted habits!',
-      priority: 'urgent',
-      tags: 'tada,bell,fire',
+      priority: 'high',
+      tags: 'tada,bell',
       clickUrl: `http://${localIp}:5173`
     });
 

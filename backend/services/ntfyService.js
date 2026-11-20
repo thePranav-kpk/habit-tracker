@@ -7,9 +7,11 @@ function toAsciiHeader(str) {
 }
 
 /**
- * Send instant mobile push notification via ntfy.sh using IPv4
+ * Send instant mobile & PC push notification via ntfy.sh using IPv4
+ * Configured with 'default' sound and 'high' priority to use the phone's
+ * standard app notification sound (same as other apps) instead of alarm ringtones.
  */
-function sendNtfyNotification(topic, { title, message, priority = 'urgent', tags = 'alarm_clock,fire', clickUrl }) {
+function sendNtfyNotification(topic, { title, message, priority = 'high', tags = 'calendar,white_check_mark', clickUrl }) {
   return new Promise((resolve) => {
     if (!topic) {
       return resolve({ success: false, error: 'No topic provided' });
@@ -17,8 +19,9 @@ function sendNtfyNotification(topic, { title, message, priority = 'urgent', tags
 
     const headers = {
       'Title': toAsciiHeader(title) || 'Habit Reminder',
-      'Priority': priority,
-      'Tags': tags || 'alarm_clock,fire'
+      'Priority': priority, // 'high' ensures heads-up banner & vibration with standard sound
+      'Tags': tags || 'calendar,white_check_mark',
+      'Sound': 'default' // Tells Android & iOS to use the user's standard system notification sound!
     };
 
     if (clickUrl) {
@@ -36,7 +39,7 @@ function sendNtfyNotification(topic, { title, message, priority = 'urgent', tags
       res.on('data', chunk => { data += chunk; });
       res.on('end', () => {
         if (res.statusCode >= 200 && res.statusCode < 300) {
-          console.log(`[NTFY] Notification sent successfully to topic "${topic}"`);
+          console.log(`[NTFY] Notification sent successfully to topic "${topic}" (standard sound)`);
           resolve({ success: true, statusCode: res.statusCode, data });
         } else {
           console.warn(`[NTFY] Failed sending to topic "${topic}": status ${res.statusCode}`);
