@@ -48,7 +48,7 @@ app.use(async (req, res, next) => {
     next();
   } catch (err) {
     console.error('[DB Middleware Error]:', err.message);
-    if (req.path === '/' || req.path === '/api/health') {
+    if (req.path === '/' || req.path === '/health' || req.path === '/api/health') {
       return next();
     }
     return res.status(500).json({
@@ -69,14 +69,16 @@ app.get('/', (req, res) => {
     status: 'ok',
     service: 'atomic-habits-api',
     environment: process.env.VERCEL ? 'vercel-serverless' : (process.env.NODE_ENV || 'development'),
-    healthEndpoint: '/api/health',
+    healthEndpoint: '/health',
     cronEndpoint: '/api/cron/check',
     timestamp: new Date().toISOString()
   });
 });
 
-// Health check & Cron endpoints
+// Health check endpoints (Primary: /health, with /api/health for compatibility)
+app.get('/health', getHealth);
 app.get('/api/health', getHealth);
+app.get('/health/cron', triggerCronCheck);
 app.get('/api/health/cron', triggerCronCheck);
 app.use('/api/cron', cronRouter);
 

@@ -212,7 +212,7 @@ export default function App() {
           <span className="live-dot"></span>
           <span className="nav-status-text">MongoDB Atlas Connected</span>
           <a 
-            href="/api/health" 
+            href="/health" 
             target="_blank" 
             rel="noreferrer" 
             className="cron-health-pill" 

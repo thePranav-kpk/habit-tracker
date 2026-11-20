@@ -28,7 +28,7 @@ Vercel is serverless, meaning it **does not count hours** and allows **1,000,000
 5. Click **"Deploy"**.
 6. When deployment finishes, copy your live backend URL:  
    `https://<your-backend-project>.vercel.app`  
-   *(Verify by opening `https://<your-backend-project>.vercel.app/api/health` in your browser)*.
+   *(Verify by opening `https://<your-backend-project>.vercel.app/health` in your browser)*.
 
 ---
 
