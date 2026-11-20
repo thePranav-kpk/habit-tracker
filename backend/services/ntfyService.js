@@ -19,9 +19,8 @@ function sendNtfyNotification(topic, { title, message, priority = 'high', tags =
 
     const headers = {
       'Title': toAsciiHeader(title) || 'Habit Reminder',
-      'Priority': priority, // 'high' ensures heads-up banner & vibration with standard sound
-      'Tags': tags || 'calendar,white_check_mark',
-      'Sound': 'default' // Tells Android & iOS to use the user's standard system notification sound!
+      'Priority': priority, // 'high' (4) ensures heads-up banner & vibration with device standard sound
+      'Tags': tags || 'calendar,white_check_mark'
     };
 
     if (clickUrl) {
