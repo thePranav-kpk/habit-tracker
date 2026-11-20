@@ -115,35 +115,44 @@ export default function HabitCard({ habit, isDone, onToggle, onUpdate, onDelete,
 
       {/* Reminder & Snooze Row */}
       <div className="habit-reminder-row" ref={snoozeRef}>
-        <div 
-          className={`reminder-badge ${isReminderActive ? 'active' : 'disabled'}`}
-          onClick={() => setShowSnoozeMenu(!showSnoozeMenu)}
-          title="Click to reschedule or snooze habit"
-        >
-          <span>⏰</span>
-          <span>{habit.reminderTime ? habit.reminderTime : 'Set Time'}</span>
-          <button 
-            className="reminder-toggle-dot" 
-            onClick={handleToggleReminder}
-            title={isReminderActive ? 'Turn off reminder' : 'Turn on reminder'}
-          >
-            {isReminderActive ? '🔔' : '🔕'}
-          </button>
-        </div>
+        {isDone ? (
+          <span className="reminder-badge completed" title="Already completed today. No mobile reminder will be sent!">
+            <span>✓</span>
+            <span>Completed for today (Reminders muted)</span>
+          </span>
+        ) : (
+          <>
+            <div 
+              className={`reminder-badge ${isReminderActive ? 'active' : 'disabled'}`}
+              onClick={() => setShowSnoozeMenu(!showSnoozeMenu)}
+              title="Click to reschedule or snooze habit"
+            >
+              <span>⏰</span>
+              <span>{habit.reminderTime ? habit.reminderTime : 'Set Time'}</span>
+              <button 
+                className="reminder-toggle-dot" 
+                onClick={handleToggleReminder}
+                title={isReminderActive ? 'Turn off reminder' : 'Turn on reminder'}
+              >
+                {isReminderActive ? '🔔' : '🔕'}
+              </button>
+            </div>
 
-        {/* Do Later / Snooze Button */}
-        <button 
-          className="do-later-btn"
-          onClick={() => setShowSnoozeMenu(!showSnoozeMenu)}
-          title="Do this habit later"
-        >
-          <span>⏳ Do Later</span>
-        </button>
+            {/* Do Later / Snooze Button */}
+            <button 
+              className="do-later-btn"
+              onClick={() => setShowSnoozeMenu(!showSnoozeMenu)}
+              title="Reschedule this habit to do it later"
+            >
+              <span>⏳ Do Later</span>
+            </button>
+          </>
+        )}
 
         {/* Snooze / Reschedule Dropdown Menu */}
-        {showSnoozeMenu && (
+        {showSnoozeMenu && !isDone && (
           <div className="snooze-popup-menu">
-            <div className="snooze-title">Reschedule Habit:</div>
+            <div className="snooze-title">Do it later (Reschedule):</div>
             <div className="snooze-options-grid">
               <button onClick={() => handleQuickSnooze(15)} className="snooze-chip">+15 mins</button>
               <button onClick={() => handleQuickSnooze(30)} className="snooze-chip">+30 mins</button>
@@ -152,7 +161,7 @@ export default function HabitCard({ habit, isDone, onToggle, onUpdate, onDelete,
             </div>
             
             <form onSubmit={handleCustomTimeSubmit} className="snooze-custom-form">
-              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Or exact time:</span>
+              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Or choose exact time:</span>
               <div style={{ display: 'flex', gap: '4px' }}>
                 <input 
                   type="time" 

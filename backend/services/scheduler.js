@@ -1,5 +1,6 @@
 const cron = require('node-cron');
 const Habit = require('../models/Habit');
+const DailyLog = require('../models/DailyLog');
 const { sendPushNotification } = require('./pushService');
 
 // Helper to get local HH:mm
@@ -27,23 +28,48 @@ function initScheduler() {
       const currentTime = getCurrentTimeString();
       const todayDate = getTodayDateString();
 
-      // Find all habits that are enabled, scheduled for this exact minute, and NOT completed yet today
-      const pendingHabits = await Habit.find({
+      // 1. Fetch today's DailyLog to find which habits are already completed today
+      const todayLog = await DailyLog.findOne({ date: todayDate });
+      const completedIds = new Set(
+        (todayLog && Array.isArray(todayLog.habitIds))
+          ? todayLog.habitIds.map(id => id.toString())
+          : []
+      );
+
+      // 2. Query all habits scheduled for this exact minute
+      const scheduledHabits = await Habit.find({
         reminderEnabled: true,
-        reminderTime: currentTime,
-        $or: [
-          { lastDoneDate: { $ne: todayDate } },
-          { lastDoneDate: null }
-        ]
+        reminderTime: currentTime
       });
 
-      if (pendingHabits.length > 0) {
-        console.log(`[Scheduler] ${currentTime}: Found ${pendingHabits.length} habit(s) to notify.`);
+      if (scheduledHabits.length === 0) {
+        return;
+      }
 
-        for (const habit of pendingHabits) {
+      // 3. STRICT RULE:
+      // If task is ALREADY completed today -> NO REMINDER to mobile!
+      // Send notification to mobile ONLY IF task is NOT completed today.
+      const incompleteHabits = scheduledHabits.filter(habit => {
+        const isDoneByDate = (habit.lastDoneDate === todayDate);
+        const isDoneByLog = completedIds.has(habit._id.toString());
+
+        if (isDoneByDate || isDoneByLog) {
+          // Already completed today: suppress reminder completely
+          console.log(`[Scheduler] Skipping "${habit.name}": already completed today (${todayDate}). No reminder sent.`);
+          return false;
+        }
+
+        // Not completed: proceed to notify
+        return true;
+      });
+
+      if (incompleteHabits.length > 0) {
+        console.log(`[Scheduler] ${currentTime}: Notifying mobile for ${incompleteHabits.length} uncompleted habit(s).`);
+
+        for (const habit of incompleteHabits) {
           const payload = {
-            title: `⏰ Time for: ${habit.name}`,
-            body: `Scheduled for ${currentTime}. Tap "Mark Done" or snooze if you want to do it later! 🔥`,
+            title: `⏰ Pending Habit: ${habit.name}`,
+            body: `You haven't completed "${habit.name}" yet today! Complete it now to protect your streak. 🔥`,
             icon: '/favicon.svg',
             badge: '/favicon.svg',
             tag: `habit-${habit._id}-${todayDate}`,
@@ -59,25 +85,23 @@ function initScheduler() {
             ]
           };
 
-          // 1. Web Push Notification to registered mobile devices
+          // Send WebPush to all registered mobile devices
           const result = await sendPushNotification(payload);
-          console.log(`[Scheduler] Dispatched WebPush for "${habit.name}": ${result.sent}/${result.total} delivered.`);
+          console.log(`[Scheduler] Dispatched WebPush for uncompleted habit "${habit.name}": ${result.sent}/${result.total} delivered.`);
 
-          // 2. Optional NTFY broadcast if topic configured
+          // Optional NTFY broadcast if topic is configured
           const ntfyTopic = process.env.NTFY_TOPIC;
           if (ntfyTopic) {
             try {
               await fetch(`https://ntfy.sh/${ntfyTopic}`, {
                 method: 'POST',
                 headers: {
-                  'Title': `⏰ Habit Reminder: ${habit.name}`,
+                  'Title': `⏰ Pending Habit: ${habit.name}`,
                   'Priority': 'default',
-                  'Tags': 'alarm_clock,fire',
-                  'Actions': `action=view, label=Open App, url=http://localhost:5173`
+                  'Tags': 'alarm_clock,fire'
                 },
-                body: `It's ${currentTime}! Time to complete "${habit.name}". Protect your streak!`
+                body: `You haven't completed "${habit.name}" yet today. Protect your streak!`
               });
-              console.log(`[Scheduler] Dispatched ntfy.sh notification to topic: ${ntfyTopic}`);
             } catch (err) {
               console.warn('[Scheduler] NTFY broadcast error:', err.message);
             }

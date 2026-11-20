@@ -80,26 +80,38 @@ const getHealth = async (req, res) => {
   }
 };
 
-// Cron trigger handler
+// Cron trigger handler: strictly notify ONLY IF task is NOT completed today
 const triggerCronCheck = async (req, res) => {
   try {
     const currentTime = req.query.time || getCurrentTimeString();
     const todayDate = getTodayDateString();
 
-    const pendingHabits = await Habit.find({
+    // 1. Fetch today's DailyLog to find completed habits
+    const todayLog = await DailyLog.findOne({ date: todayDate });
+    const completedIds = new Set(
+      (todayLog && Array.isArray(todayLog.habitIds))
+        ? todayLog.habitIds.map(id => id.toString())
+        : []
+    );
+
+    // 2. Query habits scheduled for this time
+    const scheduledHabits = await Habit.find({
       reminderEnabled: true,
-      reminderTime: currentTime,
-      $or: [
-        { lastDoneDate: { $ne: todayDate } },
-        { lastDoneDate: null }
-      ]
+      reminderTime: currentTime
+    });
+
+    // 3. Filter: Exclude any habits already completed today
+    const uncompletedHabits = scheduledHabits.filter(habit => {
+      const isDoneByDate = (habit.lastDoneDate === todayDate);
+      const isDoneByLog = completedIds.has(habit._id.toString());
+      return !isDoneByDate && !isDoneByLog;
     });
 
     const results = [];
 
-    for (const habit of pendingHabits) {
+    for (const habit of uncompletedHabits) {
       const payload = {
-        title: `⏰ Time for: ${habit.name}`,
+        title: `⏰ Pending Habit: ${habit.name}`,
         body: `Scheduled for ${currentTime}. Complete it now to protect your streak! 🔥`,
         icon: '/favicon.svg',
         badge: '/favicon.svg',
@@ -131,11 +143,11 @@ const triggerCronCheck = async (req, res) => {
           await fetch(`https://ntfy.sh/${ntfyTopic}`, {
             method: 'POST',
             headers: {
-              'Title': `⏰ Habit Reminder: ${habit.name}`,
+              'Title': `⏰ Pending Habit: ${habit.name}`,
               'Priority': 'default',
               'Tags': 'alarm_clock,fire'
             },
-            body: `It's ${currentTime}! Time to complete "${habit.name}". Protect your streak!`
+            body: `You haven't completed "${habit.name}" yet today! Protect your streak!`
           });
         } catch (e) {}
       }
@@ -143,8 +155,10 @@ const triggerCronCheck = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: `Cron check executed for ${currentTime}`,
-      notifiedHabitsCount: pendingHabits.length,
+      message: `Cron check executed for ${currentTime}. Filtered out completed tasks.`,
+      scheduledHabitsCount: scheduledHabits.length,
+      notifiedUncompletedCount: uncompletedHabits.length,
+      alreadyCompletedCount: scheduledHabits.length - uncompletedHabits.length,
       currentTime,
       todayDate,
       results
