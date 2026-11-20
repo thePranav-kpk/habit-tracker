@@ -38,6 +38,16 @@ app.use(cors({
 
 app.use(express.json());
 
+// Ensure MongoDB is connected on each incoming request (vital for Vercel Serverless)
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
+
 if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
@@ -67,11 +77,20 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 5000;
-const server = app.listen(PORT, '0.0.0.0', () => {
-  console.log(`[Server] Atomic Habits Backend running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
-});
+let server;
+
+// Standalone server mode (Render, Local dev, Docker)
+if (!process.env.VERCEL) {
+  server = app.listen(PORT, '0.0.0.0', () => {
+    console.log(`[Server] Atomic Habits Backend running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
+  });
+}
 
 process.on('unhandledRejection', (err) => {
   console.error(`Unhandled Rejection: ${err.message}`);
-  server.close(() => process.exit(1));
+  if (server) {
+    server.close(() => process.exit(1));
+  }
 });
+
+module.exports = app;

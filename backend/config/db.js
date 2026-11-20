@@ -1,6 +1,13 @@
 const mongoose = require('mongoose');
 
+let isConnected = false;
+
 const connectDB = async () => {
+  // If already connected, reuse existing database connection (essential for Vercel Serverless)
+  if (isConnected || mongoose.connection.readyState >= 1) {
+    return mongoose.connection;
+  }
+
   try {
     const uri = process.env.MONGODB_URI;
     if (!uri) {
@@ -12,10 +19,15 @@ const connectDB = async () => {
       serverSelectionTimeoutMS: 10000
     });
 
+    isConnected = true;
     console.log(`[MongoDB] Connected successfully: ${conn.connection.host} / Database: ${conn.connection.name}`);
+    return conn;
   } catch (error) {
     console.error(`[MongoDB] Connection error: ${error.message}`);
-    process.exit(1);
+    if (!process.env.VERCEL) {
+      process.exit(1);
+    }
+    throw error;
   }
 };
 
