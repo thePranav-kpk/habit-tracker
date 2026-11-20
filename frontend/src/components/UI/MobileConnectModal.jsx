@@ -7,6 +7,7 @@ export default function MobileConnectModal({ isOpen, onClose }) {
   const [loading, setLoading] = useState(false);
   const [statusMsg, setStatusMsg] = useState('');
   const [isSubscribed, setIsSubscribed] = useState(false);
+  const [activeTab, setActiveTab] = useState('instant'); // 'instant' | 'browser'
 
   useEffect(() => {
     if (isOpen) {
@@ -29,7 +30,21 @@ export default function MobileConnectModal({ isOpen, onClose }) {
     setIsSubscribed(Boolean(sub));
   };
 
-  const handleEnablePush = async () => {
+  const handleSendTest = async () => {
+    setLoading(true);
+    setStatusMsg('');
+    try {
+      const res = await habitApi.sendTestNotification();
+      setStatusMsg(`🚀 ${res.message || 'Test alert dispatched! Check your phone lockscreen now.'}`);
+    } catch (err) {
+      console.error(err);
+      setStatusMsg('❌ Failed to dispatch test alert');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEnableBrowserPush = async () => {
     setLoading(true);
     setStatusMsg('');
     try {
@@ -40,29 +55,15 @@ export default function MobileConnectModal({ isOpen, onClose }) {
 
       const subscription = await subscribeToPush(vapidKey);
       const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-      const deviceName = isMobile ? 'Mobile Phone' : 'Desktop Browser';
+      const deviceName = isMobile ? 'Mobile Phone Browser' : 'Desktop Browser';
 
       await habitApi.subscribeDevice(subscription, deviceName);
       setIsSubscribed(true);
-      setStatusMsg('✅ Device connected securely! You will now receive habit alerts.');
+      setStatusMsg('✅ Browser notifications enabled on this device!');
       loadInfo();
     } catch (err) {
       console.error('Subscription error:', err);
       setStatusMsg(`❌ ${err.message}`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSendTest = async () => {
-    setLoading(true);
-    setStatusMsg('');
-    try {
-      const res = await habitApi.sendTestNotification();
-      setStatusMsg(`🚀 ${res.message || 'Test alert sent! Check your device lockscreen.'}`);
-    } catch (err) {
-      console.error(err);
-      setStatusMsg('❌ Failed to dispatch test alert');
     } finally {
       setLoading(false);
     }
@@ -83,7 +84,7 @@ export default function MobileConnectModal({ isOpen, onClose }) {
 
         <div className="modal-body">
           <p className="modal-intro">
-            Receive encrypted, on-time habit reminders directly on your phone lock screen so you never break your streak!
+            Receive on-time reminders directly on your phone lockscreen <strong>only for uncompleted habits</strong>!
           </p>
 
           {/* Status Message */}
@@ -93,20 +94,76 @@ export default function MobileConnectModal({ isOpen, onClose }) {
             </div>
           )}
 
-          {/* Connection Options */}
-          <div className="connect-tabs">
-            {/* OPTION 1: Scan & Open on Mobile */}
-            <div className="connect-section">
-              <h4 className="section-title">Method 1: Open on Phone via Local Wi-Fi (Web Push)</h4>
+          {/* Method Selector Tabs */}
+          <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '8px' }}>
+            <button
+              className={`quick-pill ${activeTab === 'instant' ? 'active' : ''}`}
+              style={{
+                background: activeTab === 'instant' ? 'var(--accent)' : 'var(--bg-card)',
+                color: '#ffffff',
+                fontWeight: '600'
+              }}
+              onClick={() => setActiveTab('instant')}
+            >
+              ⚡ Method 1: Instant Phone Connect (Recommended)
+            </button>
+            <button
+              className={`quick-pill ${activeTab === 'browser' ? 'active' : ''}`}
+              style={{
+                background: activeTab === 'browser' ? 'var(--accent)' : 'var(--bg-card)',
+                color: '#ffffff',
+                fontWeight: '600'
+              }}
+              onClick={() => setActiveTab('browser')}
+            >
+              🌐 Method 2: Wi-Fi Browser
+            </button>
+          </div>
+
+          {activeTab === 'instant' ? (
+            <div className="connect-section" style={{ border: '1px solid var(--accent)' }}>
+              <h4 className="section-title">Scan to Connect Phone in 10 Seconds</h4>
               <p className="section-desc">
-                Scan this QR code with your phone camera or visit this URL on your phone's browser:
+                Works on <strong>Android & iPhone</strong>. Rings your phone lockscreen at habit times even with phone asleep:
               </p>
 
               {mobileInfo && (
                 <div className="qr-container">
                   <img src={mobileInfo.qrCodeDataUrl} alt="Scan QR Code" className="qr-image" />
                   <div className="qr-info">
-                    <span className="qr-label">Phone URL:</span>
+                    <span className="qr-label">1. Scan or open in phone browser:</span>
+                    <a href={mobileInfo.ntfyUrl} target="_blank" rel="noreferrer" className="mobile-link">
+                      {mobileInfo.ntfyUrl}
+                    </a>
+                    <span className="qr-sub">2. Tap <strong>"Subscribe"</strong> (or open in free ntfy app)</span>
+                    <span className="qr-sub">3. Then click the test button below!</span>
+                  </div>
+                </div>
+              )}
+
+              <div style={{ marginTop: '8px' }}>
+                <button 
+                  className="btn-primary"
+                  style={{ width: '100%', padding: '12px', fontSize: '13.5px' }}
+                  onClick={handleSendTest}
+                  disabled={loading}
+                >
+                  ⚡ Send Test Notification to My Phone
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="connect-section">
+              <h4 className="section-title">Method 2: Open Web App via Local Wi-Fi</h4>
+              <p className="section-desc">
+                Open this app directly on your phone's browser over the local network:
+              </p>
+
+              {mobileInfo && (
+                <div className="qr-container">
+                  <img src={mobileInfo.localAppQrCode} alt="Local App QR" className="qr-image" />
+                  <div className="qr-info">
+                    <span className="qr-label">Local Wi-Fi Address:</span>
                     <a href={mobileInfo.mobileUrl} target="_blank" rel="noreferrer" className="mobile-link">
                       {mobileInfo.mobileUrl}
                     </a>
@@ -118,41 +175,24 @@ export default function MobileConnectModal({ isOpen, onClose }) {
               <div className="action-buttons-row">
                 <button 
                   className={`btn-primary ${isSubscribed ? 'connected' : ''}`}
-                  onClick={handleEnablePush}
+                  onClick={handleEnableBrowserPush}
                   disabled={loading}
                 >
-                  {isSubscribed ? '✓ This Device is Subscribed' : '🔔 Enable Notifications on this Device'}
-                </button>
-
-                <button 
-                  className="btn-secondary"
-                  onClick={handleSendTest}
-                  disabled={loading}
-                >
-                  ⚡ Send Test Alert
+                  {isSubscribed ? '✓ This Device is Subscribed' : '🔔 Enable Notifications on this Browser'}
                 </button>
               </div>
             </div>
+          )}
 
-            {/* OPTION 2: Instant Background Alerts via ntfy.sh */}
-            <div className="connect-section secondary-bg">
-              <h4 className="section-title">Method 2: 100% Reliable Background Alerts via ntfy app</h4>
-              <p className="section-desc">
-                For guaranteed lockscreen alerts even when your browser is completely closed:
-              </p>
-              <ol className="ntfy-steps">
-                <li>Install the free <strong>ntfy</strong> app on your Android or iOS device (Play Store / App Store).</li>
-                <li>Tap <strong>+</strong> and subscribe to topic: <code className="topic-pill">{mobileInfo?.ntfyTopic || 'atomic-habits-pranav'}</code></li>
-                <li>That's it! Your phone will chime at each habit's scheduled time.</li>
-              </ol>
-            </div>
+          <div style={{ fontSize: '12px', color: 'var(--text-muted)', background: 'rgba(124, 58, 237, 0.08)', padding: '10px 14px', borderRadius: 'var(--radius-md)', border: '1px solid rgba(124, 58, 237, 0.2)' }}>
+            💡 <strong>Smart Notification Rule Active:</strong> If a habit is already marked as completed for today, all reminders to your mobile are automatically silenced! Reminders only ring for <strong>pending / uncompleted habits</strong>.
           </div>
         </div>
 
         <div className="modal-footer">
           <div className="active-count-badge">
             <span className="dot-live"></span>
-            <span>{mobileInfo?.activeSubscriptionsCount || 0} active device(s) connected</span>
+            <span>Channel: {mobileInfo?.ntfyTopic || 'atomic-habits-pranav'}</span>
           </div>
           <button className="btn-close" onClick={onClose}>Done</button>
         </div>

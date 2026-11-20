@@ -40,10 +40,14 @@ async function sendPushNotification(payload) {
       };
 
       try {
-        await webpush.sendNotification(pushConfig, payloadString);
+        // Use 4-second timeout so network blocks or dead endpoints don't hang
+        await webpush.sendNotification(pushConfig, payloadString, {
+          timeout: 4000,
+          urgency: 'high'
+        });
         sentCount++;
       } catch (err) {
-        console.warn(`[WebPush] Failed sending to ${sub.deviceName}: ${err.statusCode || err.message}`);
+        console.warn(`[WebPush] Failed sending to ${sub.deviceName}: ${err.statusCode || err.code || err.message}`);
         // If expired or invalid (404 or 410 Gone), remove from database
         if (err.statusCode === 404 || err.statusCode === 410) {
           console.log(`[WebPush] Removing expired subscription for ${sub.deviceName}`);
@@ -56,7 +60,7 @@ async function sendPushNotification(payload) {
     return { sent: sentCount, total: subscriptions.length };
   } catch (err) {
     console.error('[WebPush] sendPushNotification error:', err.message);
-    throw err;
+    return { sent: 0, total: 0 };
   }
 }
 

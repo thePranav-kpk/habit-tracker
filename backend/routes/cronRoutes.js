@@ -1,10 +1,25 @@
 const express = require('express');
 const router = express.Router();
+const os = require('os');
 const mongoose = require('mongoose');
 const Habit = require('../models/Habit');
 const Subscription = require('../models/Subscription');
 const DailyLog = require('../models/DailyLog');
 const { sendPushNotification } = require('../services/pushService');
+const { sendNtfyNotification } = require('../services/ntfyService');
+
+// Helper to get local IPv4 address
+function getLocalIpAddress() {
+  const interfaces = os.networkInterfaces();
+  for (const name of Object.keys(interfaces)) {
+    for (const iface of interfaces[name]) {
+      if (iface.family === 'IPv4' && !iface.internal) {
+        return iface.address;
+      }
+    }
+  }
+  return 'localhost';
+}
 
 // Helper to format local time HH:mm
 function getCurrentTimeString() {
@@ -108,6 +123,8 @@ const triggerCronCheck = async (req, res) => {
     });
 
     const results = [];
+    const ntfyTopic = process.env.NTFY_TOPIC || 'atomic-habits-pranav';
+    const localIp = getLocalIpAddress();
 
     for (const habit of uncompletedHabits) {
       const payload = {
@@ -128,29 +145,22 @@ const triggerCronCheck = async (req, res) => {
         ]
       };
 
-      const pushResult = await sendPushNotification(payload);
+      sendPushNotification(payload).catch(() => {});
+
+      const ntfyRes = await sendNtfyNotification(ntfyTopic, {
+        title: `⏰ Pending Habit: ${habit.name}`,
+        message: `It's ${currentTime}! You have not completed "${habit.name}" yet today. Protect your streak!`,
+        priority: 'urgent',
+        tags: 'alarm_clock,fire',
+        clickUrl: `http://${localIp}:5173`
+      });
+
       results.push({
         habitId: habit._id,
         name: habit.name,
         reminderTime: habit.reminderTime,
-        delivered: pushResult.sent,
-        totalDevices: pushResult.total
+        ntfyDelivered: ntfyRes.success
       });
-
-      const ntfyTopic = process.env.NTFY_TOPIC;
-      if (ntfyTopic) {
-        try {
-          await fetch(`https://ntfy.sh/${ntfyTopic}`, {
-            method: 'POST',
-            headers: {
-              'Title': `⏰ Pending Habit: ${habit.name}`,
-              'Priority': 'default',
-              'Tags': 'alarm_clock,fire'
-            },
-            body: `You haven't completed "${habit.name}" yet today! Protect your streak!`
-          });
-        } catch (e) {}
-      }
     }
 
     res.status(200).json({

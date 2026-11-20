@@ -2,6 +2,7 @@ const os = require('os');
 const QRCode = require('qrcode');
 const Subscription = require('../models/Subscription');
 const { sendPushNotification, getVapidPublicKey } = require('../services/pushService');
+const { sendNtfyNotification } = require('../services/ntfyService');
 
 // Get local network IPv4 address for mobile access
 function getLocalIpAddress() {
@@ -71,35 +72,33 @@ exports.unsubscribe = async (req, res) => {
 exports.sendTest = async (req, res) => {
   try {
     const payload = {
-      title: '🔔 Phone Connected Successfully!',
-      body: 'Your mobile phone is now securely paired. You will receive habit reminders on time! 🚀',
+      title: '🔔 Habit Tracker Alert!',
+      body: 'Your mobile phone is connected! You will receive on-time habit reminders. 🚀',
       icon: '/favicon.svg',
       badge: '/favicon.svg',
       tag: 'test-notification',
       data: { url: '/' }
     };
 
-    const result = await sendPushNotification(payload);
+    // 1. Send via WebPush
+    sendPushNotification(payload).catch(() => {});
 
-    // Also send test to ntfy if configured
-    const ntfyTopic = process.env.NTFY_TOPIC;
-    if (ntfyTopic) {
-      try {
-        await fetch(`https://ntfy.sh/${ntfyTopic}`, {
-          method: 'POST',
-          headers: {
-            'Title': '🔔 Habit Tracker Connected!',
-            'Priority': 'default',
-            'Tags': 'tada,bell'
-          },
-          body: 'Your phone is successfully paired with Atomic Habits Tracker!'
-        });
-      } catch (e) {}
-    }
+    // 2. Send via NTFY instant mobile channel (IPv4 fast delivery)
+    const ntfyTopic = process.env.NTFY_TOPIC || 'atomic-habits-pranav';
+    const localIp = getLocalIpAddress();
+
+    const ntfyResult = await sendNtfyNotification(ntfyTopic, {
+      title: '🔔 Habit Tracker Connected!',
+      message: 'Success! Your phone is now paired with Atomic Habits Tracker. You will receive notifications for uncompleted habits!',
+      priority: 'urgent',
+      tags: 'tada,bell,fire',
+      clickUrl: `http://${localIp}:5173`
+    });
 
     res.status(200).json({
       success: true,
-      message: `Test notification dispatched to ${result.sent} of ${result.total} registered devices.`
+      message: `Test alert sent! Dispatched via NTFY (Topic: ${ntfyTopic}).`,
+      ntfyDelivered: ntfyResult.success
     });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -111,11 +110,25 @@ exports.sendTest = async (req, res) => {
 exports.getMobileInfo = async (req, res) => {
   try {
     const ip = getLocalIpAddress();
-    const port = 5173; // Frontend Vite port
+    const port = 5173;
     const mobileUrl = `http://${ip}:${port}`;
-    const qrCodeDataUrl = await QRCode.toDataURL(mobileUrl, {
+    const ntfyTopic = process.env.NTFY_TOPIC || 'atomic-habits-pranav';
+    const ntfyUrl = `https://ntfy.sh/${ntfyTopic}`;
+
+    // Generate QR Code for ntfy (instant zero-friction mobile subscription)
+    const ntfyQrCode = await QRCode.toDataURL(ntfyUrl, {
       margin: 1,
-      width: 200,
+      width: 220,
+      color: {
+        dark: '#ffffff',
+        light: '#161b22'
+      }
+    });
+
+    // Generate QR Code for Local Wi-Fi Web App
+    const localAppQrCode = await QRCode.toDataURL(mobileUrl, {
+      margin: 1,
+      width: 220,
       color: {
         dark: '#ffffff',
         light: '#161b22'
@@ -123,16 +136,17 @@ exports.getMobileInfo = async (req, res) => {
     });
 
     const activeCount = await Subscription.countDocuments();
-    const ntfyTopic = process.env.NTFY_TOPIC || 'atomic-habits-pranav';
 
     res.status(200).json({
       success: true,
       data: {
         localIp: ip,
         mobileUrl,
-        qrCodeDataUrl,
-        activeSubscriptionsCount: activeCount,
-        ntfyTopic
+        ntfyTopic,
+        ntfyUrl,
+        qrCodeDataUrl: ntfyQrCode,
+        localAppQrCode,
+        activeSubscriptionsCount: activeCount
       }
     });
   } catch (err) {

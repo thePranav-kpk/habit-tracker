@@ -1,7 +1,22 @@
 const cron = require('node-cron');
+const os = require('os');
 const Habit = require('../models/Habit');
 const DailyLog = require('../models/DailyLog');
 const { sendPushNotification } = require('./pushService');
+const { sendNtfyNotification } = require('./ntfyService');
+
+// Helper to get local IPv4 address
+function getLocalIpAddress() {
+  const interfaces = os.networkInterfaces();
+  for (const name of Object.keys(interfaces)) {
+    for (const iface of interfaces[name]) {
+      if (iface.family === 'IPv4' && !iface.internal) {
+        return iface.address;
+      }
+    }
+  }
+  return 'localhost';
+}
 
 // Helper to get local HH:mm
 function getCurrentTimeString() {
@@ -54,12 +69,10 @@ function initScheduler() {
         const isDoneByLog = completedIds.has(habit._id.toString());
 
         if (isDoneByDate || isDoneByLog) {
-          // Already completed today: suppress reminder completely
           console.log(`[Scheduler] Skipping "${habit.name}": already completed today (${todayDate}). No reminder sent.`);
           return false;
         }
 
-        // Not completed: proceed to notify
         return true;
       });
 
@@ -85,27 +98,19 @@ function initScheduler() {
             ]
           };
 
-          // Send WebPush to all registered mobile devices
-          const result = await sendPushNotification(payload);
-          console.log(`[Scheduler] Dispatched WebPush for uncompleted habit "${habit.name}": ${result.sent}/${result.total} delivered.`);
+          // 1. Web Push Notification to registered devices
+          sendPushNotification(payload).catch(() => {});
 
-          // Optional NTFY broadcast if topic is configured
-          const ntfyTopic = process.env.NTFY_TOPIC;
-          if (ntfyTopic) {
-            try {
-              await fetch(`https://ntfy.sh/${ntfyTopic}`, {
-                method: 'POST',
-                headers: {
-                  'Title': `⏰ Pending Habit: ${habit.name}`,
-                  'Priority': 'default',
-                  'Tags': 'alarm_clock,fire'
-                },
-                body: `You haven't completed "${habit.name}" yet today. Protect your streak!`
-              });
-            } catch (err) {
-              console.warn('[Scheduler] NTFY broadcast error:', err.message);
-            }
-          }
+          // 2. Fast IPv4 NTFY mobile push (Rings & vibrates phone instantly)
+          const ntfyTopic = process.env.NTFY_TOPIC || 'atomic-habits-pranav';
+          const localIp = getLocalIpAddress();
+          await sendNtfyNotification(ntfyTopic, {
+            title: `⏰ Pending Habit: ${habit.name}`,
+            message: `It's ${currentTime}! You have not completed "${habit.name}" yet today. Protect your streak!`,
+            priority: 'urgent',
+            tags: 'alarm_clock,fire',
+            clickUrl: `http://${localIp}:5173`
+          });
         }
       }
     } catch (err) {
