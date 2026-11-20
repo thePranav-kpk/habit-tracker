@@ -18,25 +18,36 @@ function getLocalIpAddress() {
   return 'localhost';
 }
 
-// Helper to get local HH:mm
-function getCurrentTimeString() {
-  const now = new Date();
-  const hours = String(now.getHours()).padStart(2, '0');
-  const minutes = String(now.getMinutes()).padStart(2, '0');
-  return `${hours}:${minutes}`;
+// Helper to get time in IST (Asia/Kolkata: UTC+5:30)
+function getCurrentTimeString(date = new Date()) {
+  return new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Kolkata',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  }).format(date);
 }
 
-// Helper to get local YYYY-MM-DD
-function getTodayDateString() {
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = String(now.getMonth() + 1).padStart(2, '0');
-  const d = String(now.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
+// Helper to get YYYY-MM-DD in IST (Asia/Kolkata: UTC+5:30)
+function getTodayDateString(date = new Date()) {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Kolkata',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).format(date);
 }
 
 function initScheduler() {
-  console.log('[Scheduler] Initializing habit reminder cron job (every minute)...');
+  console.log('[Scheduler] Initializing habit reminder cron job in IST timezone (every minute)...');
+
+  // Midnight IST Rollover (Runs at 12:00:00 AM IST)
+  cron.schedule('0 0 * * *', () => {
+    const newIstDate = getTodayDateString();
+    console.log(`[Scheduler] 🌙 12:00 AM IST Midnight Rollover: Starting fresh habit day for ${newIstDate} IST!`);
+  }, {
+    timezone: 'Asia/Kolkata'
+  });
 
   cron.schedule('* * * * *', async () => {
     try {

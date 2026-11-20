@@ -1,11 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { buildHeatmapGrid } from '../../utils/dateUtils';
 import HeatmapTooltip from './HeatmapTooltip';
 
 export default function HeatmapBoard({ dailyLogs, habits }) {
   const [tooltip, setTooltip] = useState({ visible: false, x: 0, y: 0, day: null });
+  const scrollRef = useRef(null);
 
   const { monthLabels, weeks } = buildHeatmapGrid(dailyLogs, habits);
+
+  // Auto-scroll to today/recent weeks on mobile screens
+  useEffect(() => {
+    if (scrollRef.current && window.innerWidth <= 768) {
+      scrollRef.current.scrollLeft = scrollRef.current.scrollWidth;
+    }
+  }, []);
 
   const handleMouseEnter = (e, day) => {
     if (day.isFuture) return;
@@ -51,7 +59,7 @@ export default function HeatmapBoard({ dailyLogs, habits }) {
         </div>
       </div>
 
-      <div className="heatmap-outer-scroll" onMouseLeave={handleMouseLeave}>
+      <div className="heatmap-outer-scroll" ref={scrollRef} onMouseLeave={handleMouseLeave}>
         <div className="heatmap-board-wrapper">
           {/* Months Header Row */}
           <div className="heatmap-months-header">
@@ -88,6 +96,7 @@ export default function HeatmapBoard({ dailyLogs, habits }) {
                         onMouseEnter={(e) => handleMouseEnter(e, day)}
                         onMouseMove={handleMouseMove}
                         onMouseLeave={handleMouseLeave}
+                        onClick={(e) => handleMouseEnter(e, day)}
                       />
                     );
                   })}

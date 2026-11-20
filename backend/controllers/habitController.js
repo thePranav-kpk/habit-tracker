@@ -1,20 +1,24 @@
 const Habit = require('../models/Habit');
 const DailyLog = require('../models/DailyLog');
 
-// Helper to format date
-const getTodayDateString = () => {
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = String(now.getMonth() + 1).padStart(2, '0');
-  const d = String(now.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
+// Helper to format date in IST (Asia/Kolkata: UTC+5:30)
+const getTodayDateString = (date = new Date()) => {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Kolkata',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).format(date);
 };
 
-// Helper to format HH:mm
+// Helper to format HH:mm in IST (Asia/Kolkata: UTC+5:30)
 const formatTimeHHmm = (date = new Date()) => {
-  const h = String(date.getHours()).padStart(2, '0');
-  const m = String(date.getMinutes()).padStart(2, '0');
-  return `${h}:${m}`;
+  return new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Kolkata',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  }).format(date);
 };
 
 // @desc    Get all habits

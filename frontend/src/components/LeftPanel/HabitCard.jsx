@@ -113,81 +113,72 @@ export default function HabitCard({ habit, isDone, onToggle, onUpdate, onDelete,
         </button>
       </div>
 
-      {/* Reminder & Snooze Row */}
-      <div className="habit-reminder-row" ref={snoozeRef}>
-        {isDone ? (
-          <span className="reminder-badge completed" title="Already completed today. No mobile reminder will be sent!">
-            <span>✓</span>
-            <span>Completed for today (Reminders muted)</span>
-          </span>
-        ) : (
-          <>
-            <div 
-              className={`reminder-badge ${isReminderActive ? 'active' : 'disabled'}`}
-              onClick={() => setShowSnoozeMenu(!showSnoozeMenu)}
-              title="Click to reschedule or snooze habit"
-            >
-              <span>⏰</span>
-              <span>{habit.reminderTime ? habit.reminderTime : 'Set Time'}</span>
-              <button 
-                className="reminder-toggle-dot" 
-                onClick={handleToggleReminder}
-                title={isReminderActive ? 'Turn off reminder' : 'Turn on reminder'}
-              >
-                {isReminderActive ? '🔔' : '🔕'}
-              </button>
-            </div>
-
-            {/* Do Later / Snooze Button */}
+      {/* Reminder & Snooze Row (Only when pending) */}
+      {!isDone && (isReminderActive || habit.reminderTime) && (
+        <div className="habit-reminder-row" ref={snoozeRef}>
+          <div 
+            className={`reminder-badge ${isReminderActive ? 'active' : 'disabled'}`}
+            onClick={() => setShowSnoozeMenu(!showSnoozeMenu)}
+            title="Click to reschedule or snooze habit"
+          >
+            <span>⏰</span>
+            <span>{habit.reminderTime ? habit.reminderTime : 'Set Time'}</span>
             <button 
-              className="do-later-btn"
-              onClick={() => setShowSnoozeMenu(!showSnoozeMenu)}
-              title="Reschedule this habit to do it later"
+              className="reminder-toggle-dot" 
+              onClick={handleToggleReminder}
+              title={isReminderActive ? 'Turn off reminder' : 'Turn on reminder'}
             >
-              <span>⏳ Do Later</span>
+              {isReminderActive ? '🔔' : '🔕'}
             </button>
-          </>
-        )}
-
-        {/* Snooze / Reschedule Dropdown Menu */}
-        {showSnoozeMenu && !isDone && (
-          <div className="snooze-popup-menu">
-            <div className="snooze-title">Do it later (Reschedule):</div>
-            <div className="snooze-options-grid">
-              <button onClick={() => handleQuickSnooze(15)} className="snooze-chip">+15 mins</button>
-              <button onClick={() => handleQuickSnooze(30)} className="snooze-chip">+30 mins</button>
-              <button onClick={() => handleQuickSnooze(60)} className="snooze-chip">+1 hour</button>
-              <button onClick={() => { setCustomTime('20:00'); onSnooze(habit._id || habit.id, { time: '20:00' }); setShowSnoozeMenu(false); }} className="snooze-chip">Tonight 8PM</button>
-            </div>
-            
-            <form onSubmit={handleCustomTimeSubmit} className="snooze-custom-form">
-              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Or choose exact time:</span>
-              <div style={{ display: 'flex', gap: '4px' }}>
-                <input 
-                  type="time" 
-                  className="time-input-mini"
-                  value={customTime}
-                  onChange={(e) => setCustomTime(e.target.value)}
-                  required
-                />
-                <button type="submit" className="snooze-set-btn">Set</button>
-              </div>
-            </form>
           </div>
-        )}
-      </div>
+
+          {/* Do Later / Snooze Button */}
+          <button 
+            className="do-later-btn"
+            onClick={() => setShowSnoozeMenu(!showSnoozeMenu)}
+            title="Reschedule this habit to do it later"
+          >
+            <span>⏳ Do Later</span>
+          </button>
+
+          {/* Snooze / Reschedule Dropdown Menu */}
+          {showSnoozeMenu && (
+            <div className="snooze-popup-menu">
+              <div className="snooze-title">Do it later (Reschedule):</div>
+              <div className="snooze-options-grid">
+                <button onClick={() => handleQuickSnooze(15)} className="snooze-chip">+15 mins</button>
+                <button onClick={() => handleQuickSnooze(30)} className="snooze-chip">+30 mins</button>
+                <button onClick={() => handleQuickSnooze(60)} className="snooze-chip">+1 hour</button>
+                <button onClick={() => { setCustomTime('20:00'); onSnooze(habit._id || habit.id, { time: '20:00' }); setShowSnoozeMenu(false); }} className="snooze-chip">Tonight 8PM</button>
+              </div>
+              
+              <form onSubmit={handleCustomTimeSubmit} className="snooze-custom-form">
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Or choose exact time:</span>
+                <div style={{ display: 'flex', gap: '4px' }}>
+                  <input 
+                    type="time" 
+                    className="time-input-mini"
+                    value={customTime}
+                    onChange={(e) => setCustomTime(e.target.value)}
+                    required
+                  />
+                  <button type="submit" className="snooze-set-btn">Set</button>
+                </div>
+              </form>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="habit-actions">
         <button 
           className={`toggle-done-btn ${isDone ? 'done' : ''}`}
           onClick={(e) => onToggle(habit._id || habit.id, e)}
+          title={isDone ? 'Click to mark uncompleted' : 'Click to mark complete for today'}
         >
           <span className="check-icon">✓</span>
-          <span>{isDone ? 'Done Today' : 'Done Today'}</span>
+          <span>Done Today</span>
         </button>
-        <span style={{ fontSize: '11px', color: 'var(--text-dim)' }}>
-          {isDone ? '✓ Reflected on Streakboard' : 'Pending today'}
-        </span>
       </div>
     </div>
   );

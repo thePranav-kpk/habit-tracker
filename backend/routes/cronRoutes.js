@@ -21,21 +21,24 @@ function getLocalIpAddress() {
   return 'localhost';
 }
 
-// Helper to format local time HH:mm
-function getCurrentTimeString() {
-  const now = new Date();
-  const hours = String(now.getHours()).padStart(2, '0');
-  const minutes = String(now.getMinutes()).padStart(2, '0');
-  return `${hours}:${minutes}`;
+// Helper to format time in IST (Asia/Kolkata: UTC+5:30)
+function getCurrentTimeString(date = new Date()) {
+  return new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Kolkata',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  }).format(date);
 }
 
-// Helper to format local YYYY-MM-DD
-function getTodayDateString() {
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = String(now.getMonth() + 1).padStart(2, '0');
-  const d = String(now.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
+// Helper to format YYYY-MM-DD in IST (Asia/Kolkata: UTC+5:30)
+function getTodayDateString(date = new Date()) {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Kolkata',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).format(date);
 }
 
 // Format seconds into readable uptime

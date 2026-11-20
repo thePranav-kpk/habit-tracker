@@ -55,14 +55,15 @@ export default function App() {
   useEffect(() => {
     loadData();
 
-    // Midnight rollover checker
+    // Midnight IST rollover checker (runs every 5 seconds)
     const timer = setInterval(() => {
       const cur = getLocalDateString();
       if (cur !== todayStr) {
+        console.log(`[Midnight IST Rollover] Day transitioned from ${todayStr} to ${cur} IST. Refreshing habits.`);
         setTodayStr(cur);
         loadData();
       }
-    }, 30000);
+    }, 5000);
 
     // Window focus refresh for multi-tab and mobile notification sync
     const handleFocus = () => loadData();

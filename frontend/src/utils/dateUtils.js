@@ -1,19 +1,33 @@
+/**
+ * Format date in Asia/Kolkata (IST: UTC+5:30) as YYYY-MM-DD
+ * Guarantees midnight rollover occurs precisely at 12:00 AM IST!
+ */
 export function getLocalDateString(date = new Date()) {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
+  try {
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Kolkata',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).format(date);
+  } catch (e) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
 }
 
 export function formatDateDisplay(dateStr) {
   if (!dateStr) return '';
   const parts = dateStr.split('-').map(Number);
   const date = new Date(parts[0], parts[1] - 1, parts[2]);
-  return date.toLocaleDateString(undefined, {
+  return date.toLocaleDateString('en-IN', {
     weekday: 'short',
     month: 'short',
     day: 'numeric',
-    year: 'numeric'
+    year: 'numeric',
+    timeZone: 'Asia/Kolkata'
   });
 }
 
@@ -22,9 +36,9 @@ export function formatDateDisplay(dateStr) {
  * Rows: Mon(0) to Sun(6)
  */
 export function buildHeatmapGrid(dailyLogs = {}, habits = []) {
-  const today = new Date();
-  const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  const todayStr = getLocalDateString(todayDate);
+  const todayStr = getLocalDateString();
+  const [ty, tm, td] = todayStr.split('-').map(Number);
+  const todayDate = new Date(ty, tm - 1, td);
 
   // Monday = 0, ..., Sunday = 6
   const currentDayOfWeek = (todayDate.getDay() + 6) % 7;

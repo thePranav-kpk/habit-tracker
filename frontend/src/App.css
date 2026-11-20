@@ -2,10 +2,16 @@
 .app-layout {
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  width: 100vw;
-  overflow: hidden;
+  width: 100%;
+  min-height: 100vh;
   background-color: var(--bg-canvas);
+}
+
+@media (min-width: 769px) {
+  .app-layout {
+    height: 100vh;
+    overflow: hidden;
+  }
 }
 
 /* Top App Nav Bar */
@@ -129,9 +135,15 @@
 .app-container {
   display: flex;
   flex: 1;
-  height: 100%;
+  width: 100%;
   min-height: 0;
-  overflow: hidden;
+}
+
+@media (min-width: 769px) {
+  .app-container {
+    height: 100%;
+    overflow: hidden;
+  }
 }
 
 /* ================= LEFT PANEL ================= */
@@ -581,9 +593,9 @@
 .habit-actions {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   padding-top: 6px;
-  border-top: 1px solid rgba(48, 54, 61, 0.5);
+  border-top: 1px solid rgba(48, 54, 61, 0.4);
 }
 
 /* Done Today Button */
@@ -1433,58 +1445,276 @@
   border-color: #8b949e;
 }
 
-/* Responsive */
+/* ==========================================================================
+   Mobile Responsive Rules (< 768px & < 480px)
+   ========================================================================== */
 @media (max-width: 768px) {
+  /* Layout: Natural vertical stack */
   .app-layout {
     height: auto;
+    min-height: 100vh;
+    overflow-x: hidden;
     overflow-y: auto;
   }
 
+  /* Top Navigation */
+  .app-top-nav {
+    padding: 8px 14px;
+    flex-wrap: wrap;
+    gap: 8px;
+    height: auto;
+  }
+
+  .nav-left {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .cron-health-pill {
+    display: none; /* Hide internal health link on small screens to save space */
+  }
+
+  .connect-mobile-btn {
+    padding: 5px 10px;
+    font-size: 11.5px;
+  }
+
+  /* Two-panel stacked layout */
   .app-container {
     flex-direction: column;
     height: auto;
+    min-height: 0;
     overflow: visible;
   }
 
+  /* Left Panel */
   .left-panel {
     width: 100%;
     flex: none;
     border-right: none;
-    border-bottom: 1px solid var(--border-subtle);
+    border-bottom: 2px solid var(--border-subtle);
     height: auto;
+    overflow: visible;
   }
 
+  .panel-header {
+    padding: 16px 14px 12px 14px;
+  }
+
+  .brand-row {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .brand-title-group {
+    gap: 10px;
+  }
+
+  .atomic-logo-badge {
+    width: 36px;
+    height: 36px;
+  }
+
+  .brand-title {
+    font-size: 18px;
+  }
+
+  .brand-tagline {
+    font-size: 11.5px;
+  }
+
+  .date-badge {
+    font-size: 10px;
+    padding: 3px 8px;
+  }
+
+  .add-habit-form {
+    padding: 12px 14px;
+  }
+
+  .habit-input {
+    font-size: 16px; /* Prevents iOS auto-zoom on input focus */
+    padding: 8px 12px;
+  }
+
+  .add-btn {
+    width: 38px;
+    height: 38px;
+    font-size: 18px;
+  }
+
+  .list-meta-bar {
+    padding: 8px 14px;
+    font-size: 11.5px;
+  }
+
+  /* Habits List: Flow naturally down without small fixed height */
   .habits-list {
-    max-height: 380px;
+    max-height: none;
+    overflow: visible;
+    padding: 12px 14px 18px 14px;
+    gap: 10px;
   }
 
+  .habit-card {
+    padding: 12px 14px;
+    border-radius: var(--radius-md);
+  }
+
+  .habit-name {
+    font-size: 14.5px;
+  }
+
+  .toggle-done-btn {
+    padding: 7px 14px;
+    font-size: 12px;
+  }
+
+  /* Right Panel: Streakboard & Heatmap below habits */
   .right-panel {
     flex: none;
     width: 100%;
     height: auto;
     overflow: visible;
-  }
-
-  .right-panel-content {
-    padding: 20px 16px 36px 16px;
-    gap: 20px;
+    border-top: 1px solid var(--border-subtle);
   }
 
   .right-panel-header {
-    padding: 16px;
+    padding: 16px 14px 12px 14px;
     position: static;
   }
 
-  .heatmap-card {
-    padding: 16px;
+  .board-title-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
   }
 
+  .board-title {
+    font-size: 18px;
+  }
+
+  .board-subtitle {
+    font-size: 12px;
+  }
+
+  .milestone-badge-pill {
+    align-self: flex-start;
+    font-size: 11px;
+    padding: 4px 10px;
+  }
+
+  .right-panel-content {
+    padding: 14px 14px 48px 14px;
+    gap: 16px;
+  }
+
+  /* Stats cards: 2x2 grid */
   .stats-row {
     grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .stat-card {
+    padding: 14px 12px;
+    gap: 4px;
+  }
+
+  .stat-card-label {
+    font-size: 11px;
+  }
+
+  .stat-card-value {
+    font-size: 22px;
+  }
+
+  .stat-card-sub {
+    font-size: 10.5px;
+  }
+
+  /* Heatmap card & Horizontal Scrolling */
+  .heatmap-card {
+    padding: 14px 12px;
+    gap: 12px;
+  }
+
+  .heatmap-top-bar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .heatmap-legend {
+    font-size: 10.5px;
+    gap: 3px;
+  }
+
+  .legend-cell {
+    width: 10px;
+    height: 10px;
+  }
+
+  .heatmap-outer-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 10px;
+    border-radius: var(--radius-sm);
+  }
+
+  /* Wisdom quote section */
+  .wisdom-card {
+    padding: 16px 14px;
+  }
+
+  .wisdom-quote {
+    font-size: 13px;
+  }
+
+  /* Mobile Connect Modal */
+  .modal-backdrop {
+    padding: 10px;
+  }
+
+  .modal-card {
+    max-height: 92vh;
+    padding: 0;
+  }
+
+  .modal-header {
+    padding: 14px 16px;
+  }
+
+  .modal-body {
+    padding: 14px 16px;
+    gap: 12px;
+  }
+
+  .modal-footer {
+    padding: 12px 16px;
+    flex-direction: column;
+    gap: 10px;
   }
 
   .qr-container {
     flex-direction: column;
     text-align: center;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .qr-image {
+    width: 140px;
+    height: 140px;
+  }
+}
+
+/* Extra small mobile (< 400px) */
+@media (max-width: 400px) {
+  .brand-title {
+    font-size: 16px;
+  }
+  
+  .stats-row {
+    grid-template-columns: 1fr;
   }
 }
