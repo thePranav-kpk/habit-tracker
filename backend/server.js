@@ -5,6 +5,7 @@ const cors = require('cors');
 const morgan = require('morgan');
 const connectDB = require('./config/db');
 const { initScheduler } = require('./services/scheduler');
+const { router: cronRouter, getHealth, triggerCronCheck } = require('./routes/cronRoutes');
 
 // Connect to MongoDB
 connectDB().then(() => {
@@ -17,9 +18,7 @@ const app = express();
 // Flexible CORS to allow localhost and local Wi-Fi IP access from mobile devices
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps, curl, or same-origin)
     if (!origin) return callback(null, true);
-    // Allow any localhost or local IP port 5173 or 5000
     if (
       origin.includes('localhost') ||
       origin.includes('127.0.0.1') ||
@@ -29,7 +28,7 @@ app.use(cors({
     ) {
       return callback(null, true);
     }
-    return callback(null, true); // Allow during local development
+    return callback(null, true);
   },
   credentials: true
 }));
@@ -40,17 +39,12 @@ if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
 
-// Health check endpoint
-app.get('/api/health', (req, res) => {
-  res.status(200).json({
-    status: 'ok',
-    service: 'atomic-habits-api',
-    mongodb: 'connected',
-    timestamp: new Date()
-  });
-});
+// Health check & Cron endpoints
+app.get('/api/health', getHealth);
+app.get('/api/health/cron', triggerCronCheck);
+app.use('/api/cron', cronRouter);
 
-// Mount Routes
+// Mount Feature Routes
 app.use('/api/habits', require('./routes/habitRoutes'));
 app.use('/api/logs', require('./routes/logRoutes'));
 app.use('/api/notifications', require('./routes/notificationRoutes'));

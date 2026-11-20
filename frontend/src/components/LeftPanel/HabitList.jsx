@@ -2,7 +2,7 @@ import React from 'react';
 import HabitCard from './HabitCard';
 import { getLocalDateString } from '../../utils/dateUtils';
 
-export default function HabitList({ habits, onToggle, onUpdate, onDelete, onQuickAdd }) {
+export default function HabitList({ habits, onToggle, onUpdate, onDelete, onQuickAdd, onSnooze }) {
   const todayStr = getLocalDateString();
 
   if (!habits || habits.length === 0) {
@@ -43,6 +43,7 @@ export default function HabitList({ habits, onToggle, onUpdate, onDelete, onQuic
             onToggle={onToggle}
             onUpdate={onUpdate}
             onDelete={onDelete}
+            onSnooze={onSnooze}
           />
         );
       })}

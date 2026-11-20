@@ -20,6 +20,13 @@ export default function App() {
   const [confettiOrigin, setConfettiOrigin] = useState(null);
   const [todayStr, setTodayStr] = useState(getLocalDateString());
   const [isMobileModalOpen, setIsMobileModalOpen] = useState(false);
+  const [toastMsg, setToastMsg] = useState('');
+
+  // Show temporary toast message
+  const showToast = (msg) => {
+    setToastMsg(msg);
+    setTimeout(() => setToastMsg(''), 4000);
+  };
 
   // Initialize service worker
   useEffect(() => {
@@ -56,7 +63,7 @@ export default function App() {
       }
     }, 30000);
 
-    // Window focus refresh for multi-tab sync
+    // Window focus refresh for multi-tab and mobile notification sync
     const handleFocus = () => loadData();
     window.addEventListener('focus', handleFocus);
 
@@ -71,6 +78,7 @@ export default function App() {
     try {
       const newHabit = await habitApi.createHabit(habitData);
       setHabits(prev => [...prev, newHabit]);
+      showToast(`Added habit: "${newHabit.name}"`);
     } catch (err) {
       console.error('Add habit error:', err);
     }
@@ -93,19 +101,33 @@ export default function App() {
       setHabits(prev => prev.filter(h => (h._id || h.id) !== id));
       const updatedLogs = await habitApi.getLogs();
       setDailyLogs(updatedLogs);
+      showToast('Habit deleted.');
     } catch (err) {
       console.error('Delete habit error:', err);
     }
   };
 
-  // Handle Toggle Done
+  // Handle Snooze / Do Later
+  const handleSnoozeHabit = async (id, options) => {
+    try {
+      const result = await habitApi.snoozeHabit(id, options);
+      if (result && result.habit) {
+        setHabits(prev => prev.map(h => ((h._id || h.id) === id ? result.habit : h)));
+        showToast(`⏰ Rescheduled for ${result.newTime}! We'll remind you on mobile then.`);
+      }
+    } catch (err) {
+      console.error('Snooze error:', err);
+    }
+  };
+
+  // Handle Toggle Done (reflects immediately on Streakboard)
   const handleToggleDone = async (id, event) => {
     const habit = habits.find(h => (h._id || h.id) === id);
     if (!habit) return;
 
     const willBeDone = habit.lastDoneDate !== todayStr;
 
-    // Optimistic UI update
+    // 1. Optimistic UI update: Habit List
     setHabits(prev => prev.map(h => {
       if ((h._id || h.id) === id) {
         return { ...h, lastDoneDate: willBeDone ? todayStr : null };
@@ -113,6 +135,7 @@ export default function App() {
       return h;
     }));
 
+    // 2. Optimistic UI update: Streakboard & Daily Log Heatmap
     setDailyLogs(prev => {
       const current = prev[todayStr] || { date: todayStr, completedCount: 0, habitIds: [] };
       const currentIds = Array.isArray(current.habitIds) ? current.habitIds : [];
@@ -145,9 +168,10 @@ export default function App() {
       } else {
         setConfettiOrigin({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
       }
+      showToast(`🔥 "${habit.name}" completed! Streak updated.`);
     }
 
-    // Persist to Backend API
+    // 3. Persist to Backend API & MongoDB Atlas
     try {
       const result = await habitApi.toggleHabit(id, todayStr);
       if (result.dailyLog) {
@@ -179,6 +203,15 @@ export default function App() {
         <div className="nav-left">
           <span className="live-dot"></span>
           <span className="nav-status-text">MongoDB Atlas Connected</span>
+          <a 
+            href="/api/health" 
+            target="_blank" 
+            rel="noreferrer" 
+            className="cron-health-pill" 
+            title="View Health & Cron endpoint"
+          >
+            Health & Cron API
+          </a>
         </div>
 
         <button 
@@ -190,6 +223,12 @@ export default function App() {
           <span>Connect Mobile Phone</span>
         </button>
       </div>
+
+      {toastMsg && (
+        <div className="floating-toast">
+          <span>{toastMsg}</span>
+        </div>
+      )}
 
       {error && (
         <div className="backend-alert-banner">
@@ -225,6 +264,7 @@ export default function App() {
             onToggle={handleToggleDone}
             onUpdate={handleUpdateHabit}
             onDelete={handleDeleteHabit}
+            onSnooze={handleSnoozeHabit}
             onQuickAdd={(name) => handleAddHabit({ name, reminderTime: '08:00', reminderEnabled: true })}
           />
         </aside>

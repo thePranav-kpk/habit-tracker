@@ -52,6 +52,28 @@ export const habitApi = {
     return json.data; // { habit, isDone, dailyLog }
   },
 
+  async completeToday(id, date) {
+    const res = await fetch(`${API_BASE}/habits/${id}/complete-today`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ date })
+    });
+    if (!res.ok) throw new Error('Failed to complete habit today');
+    const json = await res.json();
+    return json.data;
+  },
+
+  async snoozeHabit(id, options) {
+    const res = await fetch(`${API_BASE}/habits/${id}/snooze`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(options) // { minutes: 15/30/60 } or { time: "HH:mm" }
+    });
+    if (!res.ok) throw new Error('Failed to snooze habit');
+    const json = await res.json();
+    return json.data;
+  },
+
   // Daily Logs & Stats
   async getLogs() {
     const res = await fetch(`${API_BASE}/logs`);
@@ -66,6 +88,20 @@ export const habitApi = {
     if (!res.ok) throw new Error('Failed to fetch stats');
     const json = await res.json();
     return json.data;
+  },
+
+  // Health & External Cron
+  async getHealth() {
+    const res = await fetch(`${API_BASE}/health`);
+    if (!res.ok) throw new Error('Failed to fetch health');
+    return await res.json();
+  },
+
+  async triggerCronCheck(time) {
+    const query = time ? `?time=${time}` : '';
+    const res = await fetch(`${API_BASE}/cron/check${query}`);
+    if (!res.ok) throw new Error('Failed to trigger cron check');
+    return await res.json();
   },
 
   // Push Notifications

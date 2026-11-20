@@ -10,6 +10,13 @@ const getTodayDateString = () => {
   return `${y}-${m}-${d}`;
 };
 
+// Helper to format HH:mm
+const formatTimeHHmm = (date = new Date()) => {
+  const h = String(date.getHours()).padStart(2, '0');
+  const m = String(date.getMinutes()).padStart(2, '0');
+  return `${h}:${m}`;
+};
+
 // @desc    Get all habits
 // @route   GET /api/habits
 exports.getHabits = async (req, res) => {
@@ -45,7 +52,7 @@ exports.createHabit = async (req, res) => {
   }
 };
 
-// @desc    Update habit (rename or update reminder)
+// @desc    Update habit (rename, reorder, or update reminder)
 // @route   PUT /api/habits/:id
 exports.updateHabit = async (req, res) => {
   try {
@@ -158,6 +165,92 @@ exports.toggleHabit = async (req, res) => {
         habit,
         isDone,
         dailyLog
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+// @desc    Mark habit complete for today (idempotent, ideal for mobile notifications)
+// @route   POST /api/habits/:id/complete-today
+exports.completeToday = async (req, res) => {
+  try {
+    const targetDate = req.body.date || getTodayDateString();
+    const habit = await Habit.findById(req.params.id);
+
+    if (!habit) {
+      return res.status(404).json({ success: false, error: 'Habit not found' });
+    }
+
+    habit.lastDoneDate = targetDate;
+    await habit.save();
+
+    let dailyLog = await DailyLog.findOne({ date: targetDate });
+    if (!dailyLog) {
+      dailyLog = new DailyLog({
+        date: targetDate,
+        completedCount: 1,
+        habitIds: [habit._id]
+      });
+    } else {
+      if (!dailyLog.habitIds.some(id => id.toString() === habit._id.toString())) {
+        dailyLog.habitIds.push(habit._id);
+      }
+      dailyLog.completedCount = dailyLog.habitIds.length;
+    }
+    await dailyLog.save();
+
+    res.status(200).json({
+      success: true,
+      message: `Marked "${habit.name}" as done today!`,
+      data: {
+        habit,
+        dailyLog,
+        isDone: true
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+// @desc    Snooze or Reschedule habit reminder from mobile
+// @route   POST /api/habits/:id/snooze
+exports.snoozeHabit = async (req, res) => {
+  try {
+    const { minutes, time } = req.body;
+    const habit = await Habit.findById(req.params.id);
+
+    if (!habit) {
+      return res.status(404).json({ success: false, error: 'Habit not found' });
+    }
+
+    let targetTime = null;
+
+    if (time && /^([01]\d|2[0-3]):([0-5]\d)$/.test(time)) {
+      targetTime = time;
+    } else if (minutes && !isNaN(Number(minutes))) {
+      const futureDate = new Date(Date.now() + Number(minutes) * 60000);
+      targetTime = formatTimeHHmm(futureDate);
+    } else {
+      // Default snooze: +30 minutes
+      const futureDate = new Date(Date.now() + 30 * 60000);
+      targetTime = formatTimeHHmm(futureDate);
+    }
+
+    habit.reminderTime = targetTime;
+    habit.reminderEnabled = true;
+    await habit.save();
+
+    console.log(`[Snooze] Habit "${habit.name}" rescheduled to ${targetTime}`);
+
+    res.status(200).json({
+      success: true,
+      message: `Habit "${habit.name}" rescheduled for ${targetTime}`,
+      data: {
+        habit,
+        newTime: targetTime
       }
     });
   } catch (err) {

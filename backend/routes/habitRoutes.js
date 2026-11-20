@@ -5,7 +5,9 @@ const {
   createHabit,
   updateHabit,
   deleteHabit,
-  toggleHabit
+  toggleHabit,
+  completeToday,
+  snoozeHabit
 } = require('../controllers/habitController');
 
 router.route('/')
@@ -17,5 +19,7 @@ router.route('/:id')
   .delete(deleteHabit);
 
 router.post('/:id/toggle', toggleHabit);
+router.post('/:id/complete-today', completeToday);
+router.post('/:id/snooze', snoozeHabit);
 
 module.exports = router;

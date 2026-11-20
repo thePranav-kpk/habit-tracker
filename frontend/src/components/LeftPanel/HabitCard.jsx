@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 
-export default function HabitCard({ habit, isDone, onToggle, onUpdate, onDelete }) {
+export default function HabitCard({ habit, isDone, onToggle, onUpdate, onDelete, onSnooze }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(habit.name);
-  const [isEditingTime, setIsEditingTime] = useState(false);
-  const [reminderTime, setReminderTime] = useState(habit.reminderTime || '08:00');
+  const [showSnoozeMenu, setShowSnoozeMenu] = useState(false);
+  const [customTime, setCustomTime] = useState(habit.reminderTime || '20:00');
   const inputRef = useRef(null);
+  const snoozeRef = useRef(null);
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -13,6 +14,21 @@ export default function HabitCard({ habit, isDone, onToggle, onUpdate, onDelete 
       inputRef.current.select();
     }
   }, [isEditing]);
+
+  // Click outside to close snooze menu
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (snoozeRef.current && !snoozeRef.current.contains(event.target)) {
+        setShowSnoozeMenu(false);
+      }
+    }
+    if (showSnoozeMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showSnoozeMenu]);
 
   const handleSaveName = () => {
     const trimmed = editText.trim();
@@ -24,10 +40,14 @@ export default function HabitCard({ habit, isDone, onToggle, onUpdate, onDelete 
     setIsEditing(false);
   };
 
-  const handleTimeChange = (newTime) => {
-    setReminderTime(newTime);
-    onUpdate(habit._id || habit.id, { reminderTime: newTime, reminderEnabled: true });
-    setIsEditingTime(false);
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSaveName();
+    } else if (e.key === 'Escape') {
+      setEditText(habit.name);
+      setIsEditing(false);
+    }
   };
 
   const handleToggleReminder = (e) => {
@@ -36,13 +56,16 @@ export default function HabitCard({ habit, isDone, onToggle, onUpdate, onDelete 
     onUpdate(habit._id || habit.id, { reminderEnabled: newEnabled });
   };
 
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleSaveName();
-    } else if (e.key === 'Escape') {
-      setEditText(habit.name);
-      setIsEditing(false);
+  const handleQuickSnooze = (minutes) => {
+    onSnooze(habit._id || habit.id, { minutes });
+    setShowSnoozeMenu(false);
+  };
+
+  const handleCustomTimeSubmit = (e) => {
+    e.preventDefault();
+    if (customTime) {
+      onSnooze(habit._id || habit.id, { time: customTime });
+      setShowSnoozeMenu(false);
     }
   };
 
@@ -90,34 +113,57 @@ export default function HabitCard({ habit, isDone, onToggle, onUpdate, onDelete 
         </button>
       </div>
 
-      {/* Reminder Row */}
-      <div className="habit-reminder-row">
-        {isEditingTime ? (
-          <div className="time-edit-inline">
-            <input
-              type="time"
-              className="time-input-mini"
-              value={reminderTime}
-              onChange={(e) => setReminderTime(e.target.value)}
-              onBlur={() => handleTimeChange(reminderTime)}
-              autoFocus
-            />
-          </div>
-        ) : (
-          <div 
-            className={`reminder-badge ${isReminderActive ? 'active' : 'disabled'}`}
-            onClick={() => setIsEditingTime(true)}
-            title="Click to change phone reminder time"
+      {/* Reminder & Snooze Row */}
+      <div className="habit-reminder-row" ref={snoozeRef}>
+        <div 
+          className={`reminder-badge ${isReminderActive ? 'active' : 'disabled'}`}
+          onClick={() => setShowSnoozeMenu(!showSnoozeMenu)}
+          title="Click to reschedule or snooze habit"
+        >
+          <span>⏰</span>
+          <span>{habit.reminderTime ? habit.reminderTime : 'Set Time'}</span>
+          <button 
+            className="reminder-toggle-dot" 
+            onClick={handleToggleReminder}
+            title={isReminderActive ? 'Turn off reminder' : 'Turn on reminder'}
           >
-            <span>⏰</span>
-            <span>{habit.reminderTime ? habit.reminderTime : 'Set Time'}</span>
-            <button 
-              className="reminder-toggle-dot" 
-              onClick={handleToggleReminder}
-              title={isReminderActive ? 'Turn off reminder' : 'Turn on reminder'}
-            >
-              {isReminderActive ? '🔔' : '🔕'}
-            </button>
+            {isReminderActive ? '🔔' : '🔕'}
+          </button>
+        </div>
+
+        {/* Do Later / Snooze Button */}
+        <button 
+          className="do-later-btn"
+          onClick={() => setShowSnoozeMenu(!showSnoozeMenu)}
+          title="Do this habit later"
+        >
+          <span>⏳ Do Later</span>
+        </button>
+
+        {/* Snooze / Reschedule Dropdown Menu */}
+        {showSnoozeMenu && (
+          <div className="snooze-popup-menu">
+            <div className="snooze-title">Reschedule Habit:</div>
+            <div className="snooze-options-grid">
+              <button onClick={() => handleQuickSnooze(15)} className="snooze-chip">+15 mins</button>
+              <button onClick={() => handleQuickSnooze(30)} className="snooze-chip">+30 mins</button>
+              <button onClick={() => handleQuickSnooze(60)} className="snooze-chip">+1 hour</button>
+              <button onClick={() => { setCustomTime('20:00'); onSnooze(habit._id || habit.id, { time: '20:00' }); setShowSnoozeMenu(false); }} className="snooze-chip">Tonight 8PM</button>
+            </div>
+            
+            <form onSubmit={handleCustomTimeSubmit} className="snooze-custom-form">
+              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Or exact time:</span>
+              <div style={{ display: 'flex', gap: '4px' }}>
+                <input 
+                  type="time" 
+                  className="time-input-mini"
+                  value={customTime}
+                  onChange={(e) => setCustomTime(e.target.value)}
+                  required
+                />
+                <button type="submit" className="snooze-set-btn">Set</button>
+              </div>
+            </form>
           </div>
         )}
       </div>
@@ -128,10 +174,10 @@ export default function HabitCard({ habit, isDone, onToggle, onUpdate, onDelete 
           onClick={(e) => onToggle(habit._id || habit.id, e)}
         >
           <span className="check-icon">✓</span>
-          <span>Done Today</span>
+          <span>{isDone ? 'Done Today' : 'Done Today'}</span>
         </button>
         <span style={{ fontSize: '11px', color: 'var(--text-dim)' }}>
-          {isDone ? '✓ Completed' : 'Pending today'}
+          {isDone ? '✓ Reflected on Streakboard' : 'Pending today'}
         </span>
       </div>
     </div>

@@ -43,15 +43,20 @@ function initScheduler() {
         for (const habit of pendingHabits) {
           const payload = {
             title: `⏰ Time for: ${habit.name}`,
-            body: `Small habits, remarkable results! Complete it now to protect your streak. 🔥`,
+            body: `Scheduled for ${currentTime}. Tap "Mark Done" or snooze if you want to do it later! 🔥`,
             icon: '/favicon.svg',
             badge: '/favicon.svg',
             tag: `habit-${habit._id}-${todayDate}`,
             data: {
-              habitId: habit._id,
+              habitId: habit._id.toString(),
               name: habit.name,
               url: '/'
-            }
+            },
+            actions: [
+              { action: 'mark-done', title: '✓ Done' },
+              { action: 'snooze-30', title: '⏰ Later (+30m)' },
+              { action: 'open', title: '📱 Open App' }
+            ]
           };
 
           // 1. Web Push Notification to registered mobile devices
@@ -67,7 +72,8 @@ function initScheduler() {
                 headers: {
                   'Title': `⏰ Habit Reminder: ${habit.name}`,
                   'Priority': 'default',
-                  'Tags': 'alarm_clock,fire'
+                  'Tags': 'alarm_clock,fire',
+                  'Actions': `action=view, label=Open App, url=http://localhost:5173`
                 },
                 body: `It's ${currentTime}! Time to complete "${habit.name}". Protect your streak!`
               });
