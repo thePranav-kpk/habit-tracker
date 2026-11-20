@@ -7,11 +7,14 @@ const connectDB = require('./config/db');
 const { initScheduler } = require('./services/scheduler');
 const { router: cronRouter, getHealth, triggerCronCheck } = require('./routes/cronRoutes');
 
-// Connect to MongoDB
-connectDB().then(() => {
-  // Start reminder scheduler once DB is connected
-  initScheduler();
-});
+// Connect to MongoDB & start scheduler (only in persistent server environments like Local or Render)
+if (!process.env.VERCEL) {
+  connectDB().then(() => {
+    initScheduler();
+  }).catch((err) => {
+    console.warn('[DB Startup Warning]:', err.message);
+  });
+}
 
 const app = express();
 
@@ -44,13 +47,33 @@ app.use(async (req, res, next) => {
     await connectDB();
     next();
   } catch (err) {
-    next(err);
+    console.error('[DB Middleware Error]:', err.message);
+    if (req.path === '/' || req.path === '/api/health') {
+      return next();
+    }
+    return res.status(500).json({
+      success: false,
+      error: `Database connection error: ${err.message}`,
+      hint: 'Please ensure MONGODB_URI is configured in Vercel Project Settings, and 0.0.0.0/0 is whitelisted in MongoDB Atlas Network Access.'
+    });
   }
 });
 
 if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
+
+// Root landing endpoint
+app.get('/', (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    service: 'atomic-habits-api',
+    environment: process.env.VERCEL ? 'vercel-serverless' : (process.env.NODE_ENV || 'development'),
+    healthEndpoint: '/api/health',
+    cronEndpoint: '/api/cron/check',
+    timestamp: new Date().toISOString()
+  });
+});
 
 // Health check & Cron endpoints
 app.get('/api/health', getHealth);
