@@ -16,6 +16,7 @@ const connectDB = async () => {
   try {
     const conn = await mongoose.connect(uri, {
       dbName: 'atomic_habits',
+      bufferCommands: false, // Prevents queries buffering/hanging indefinitely when disconnected
       serverSelectionTimeoutMS: 5000, // 5s timeout prevents Vercel 10s lambda hard crash
       connectTimeoutMS: 5000
     });

@@ -104,6 +104,16 @@ const triggerCronCheck = async (req, res) => {
     const currentTime = req.query.time || getCurrentTimeString();
     const todayDate = getTodayDateString();
 
+    // Fast-fail if DB is not connected yet (avoids serverless hanging)
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(200).json({
+        success: false,
+        message: 'Database connection is not ready. Cron check deferred.',
+        currentTime,
+        todayDate
+      });
+    }
+
     // 1. Fetch today's DailyLog to find completed habits
     const todayLog = await DailyLog.findOne({ date: todayDate });
     const completedIds = new Set(
